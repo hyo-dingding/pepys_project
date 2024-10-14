@@ -173,7 +173,7 @@ pyrightconfig.json
 ### ReactNative ###
 # React Native Stack Base
 
-.expo
+# .expo
 __generated__
 
 ### ReactNative.Node Stack ###
