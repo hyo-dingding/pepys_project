@@ -38,6 +38,8 @@ tiktoken==0.8.0
 uritemplate==4.1.1
 urllib3==2.2.3
 uvicorn==0.31.0
-uvloop==0.20.0
 watchfiles==0.24.0
 websockets==13.1
+
+# Only install uvloop on non-Windows platforms
+uvloop==0.20.0; sys_platform != 'win32'
