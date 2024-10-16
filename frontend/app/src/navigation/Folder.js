@@ -3,7 +3,7 @@ import Header from "../screens/Header";
 
 export default function Folder() {
     return (
-        <View>
+        <View style={{ flex: 1 }}>
             <Header title="Folder" />
 
             <View
@@ -11,9 +11,10 @@ export default function Folder() {
                     flex: 1,
                     alignContent: "center",
                     justifyContent: "center",
+                    backgroundColor: "white",
                 }}
             >
-                <Text>Folder</Text>
+             
             </View>
         </View>
     );
