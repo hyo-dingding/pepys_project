@@ -3,7 +3,7 @@ import Header from "../screens/Header";
 
 export default function Calendar() {
     return (
-        <View>
+        <View style={{ flex: 1 }}>
             <Header title="Calendar" />
 
             <View
@@ -11,9 +11,10 @@ export default function Calendar() {
                     flex: 1,
                     alignContent: "center",
                     justifyContent: "center",
+                    backgroundColor: "white",
                 }}
             >
-                <Text>calendar</Text>
+              
             </View>
         </View>
     );
