@@ -13,7 +13,9 @@ export default function Folder() {
           justifyContent: "center",
           backgroundColor: "white",
         }}
-      ></View>
+      >
+        <Text>bianka 수정</Text>
+      </View>
     </View>
   );
 }
