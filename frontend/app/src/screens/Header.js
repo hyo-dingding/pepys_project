@@ -1,41 +1,26 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import Feather from "@expo/vector-icons/Feather";
-import AntDesign from "@expo/vector-icons/AntDesign";
-
-
-const IconButton = (props) => {
-    return (
-        <TouchableOpacity
-            hitSlop={{ top: 15, bottom: 15 }}
-            style={{ paddingHorizontal: 6 }}
-        >
-            {props.name === "search" ? (
-                <Feather name="search" size={24} color="black" />
-            ) : (
-                <AntDesign name={props.name} size={24} color="black" />
-            )}
-        </TouchableOpacity>
-    );
-};
+import React from "react";
+import { View, Text, StyleSheet, StatusBar } from "react-native";
 
 export default function Header({ title }) {
-    return (
-        <View
-            style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                paddingVertical: 10,
-                backgroundColor: "white",
-            }}
-        >
-            <Text style={{ fontSize: 22, fontWeight: "bold" }}>{title}</Text>
+  return (
+    <View style={styles.header}>
+      <Text style={styles.title}>{title}</Text>
+    </View>
+  );
+}
 
-            <View style={{ flexDirection: "row" }}>
-                <IconButton name="search" />
-                <IconButton name="bells" />
-            </View>
-        </View>
-    );
-};
-
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    paddingTop: StatusBar.currentHeight + 10,
+    paddingBottom: 10,
+    paddingHorizontal: 15,
+    backgroundColor: "white",
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+  },
+});
