@@ -14,7 +14,7 @@ export default function Calendar() {
           backgroundColor: "white",
         }}
       >
-        <Text>디잔 수정</Text>
+        <Text>Ello</Text>
       </View>
     </View>
   );
