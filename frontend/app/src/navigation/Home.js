@@ -43,7 +43,6 @@ const HomeScreen = ({ navigation }) => {
           onPress={() => handleButtonPress("Join Meeting")}
         >
           <Text style={styles.buttonText}>Join Meeting</Text>
-          <Text style={styles.buttonText}>Join Meeting</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
