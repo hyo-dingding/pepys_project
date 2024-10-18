@@ -152,5 +152,6 @@ const styles = StyleSheet.create({
   safeAreaView: {
     flex: 1,
     backgroundColor: "white",
+    paddingBottom: "10",
   },
 });
