@@ -113,20 +113,21 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: "bold",
-  button: {
-    width: "80%",
-    padding: 15,
-    borderRadius: 20,
-    backgroundColor: "#E0E0E0",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  activeButton: {
-    backgroundColor: "#90EE90",
-  },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: "bold",
+    button: {
+      width: "80%",
+      padding: 15,
+      borderRadius: 20,
+      backgroundColor: "#E0E0E0",
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    activeButton: {
+      backgroundColor: "#90EE90",
+    },
+    buttonText: {
+      fontSize: 18,
+      fontWeight: "bold",
+    },
   },
 });
 
