@@ -13,10 +13,9 @@ import Folder from "./src/navigation/Folder.js";
 import Calendar from "./src/navigation/Calendar.js";
 import Profile from "./src/navigation/Profile.js";
 import Login from "./src/screens/Login";
-import SignUp from "./src/screens/Signup"; // 주의: 파일명이 Signup.js라면 "./src/screens/Signup"으로 수정해야 합니다.
+import SignUp from "./src/screens/Signup";
 import LoadingScreen from "./src/screens/LoadingScreen";
 import WelcomeScreen from "./src/screens/WelcomeScreen";
-import RoomSetupScreen from "./src/screens/RoomSetupScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -44,10 +43,8 @@ function MainTabs() {
         ...screenOptions,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          if (route.name === "RoomSetup") {
+          if (route.name === "Home") {
             iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "Home") {
-            iconName = focused ? "mic" : "mic-outline";
           } else if (route.name === "Folder") {
             iconName = focused ? "folder" : "folder-outline";
           } else if (route.name === "Calendar") {
@@ -61,7 +58,6 @@ function MainTabs() {
         tabBarInactiveTintColor: "gray",
       })}
     >
-      <Tab.Screen name="RoomSetup" component={RoomSetupScreen} />
       <Tab.Screen name="Home" component={Home} />
       <Tab.Screen name="Folder" component={Folder} />
       <Tab.Screen name="Calendar" component={Calendar} />
@@ -119,5 +115,6 @@ const styles = StyleSheet.create({
   safeAreaView: {
     flex: 1,
     backgroundColor: "white",
+    paddingBottom: "10",
   },
 });
