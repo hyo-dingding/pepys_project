@@ -3,9 +3,11 @@ import { View, Image, StyleSheet, Animated, Easing } from "react-native";
 
 const LoadingScreen = () => {
   const logoAnimation = new Animated.Value(0);
+  const opacityAnimation = new Animated.Value(0.5);
 
   useEffect(() => {
     animateLogo();
+    animateOpacity();
   }, []);
 
   const animateLogo = () => {
@@ -33,6 +35,25 @@ const LoadingScreen = () => {
     ).start();
   };
 
+  const animateOpacity = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacityAnimation, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnimation, {
+          toValue: 0.5,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
   const rotation = logoAnimation.interpolate({
     inputRange: [-1, 1],
     outputRange: ["-5deg", "5deg"],
@@ -42,6 +63,14 @@ const LoadingScreen = () => {
     <View style={styles.loadingContainer}>
       <Animated.View
         style={[
+          styles.logoBackground,
+          {
+            opacity: opacityAnimation,
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
           styles.logoContainer,
           {
             transform: [{ rotate: rotation }],
@@ -49,7 +78,7 @@ const LoadingScreen = () => {
         ]}
       >
         <Image
-          source={require("../assets/image/logo.png")}
+          source={require("../assets/image/logo3.png")}
           style={styles.logo}
         />
       </Animated.View>
@@ -62,22 +91,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#4A00E0", // 단색 배경
   },
   logoContainer: {
-    // 원형이 아닌 이미지를 위해 borderRadius 제거
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 20,
+    padding: 20,
     overflow: "hidden",
     elevation: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
   logo: {
     width: 150,
     height: 150,
     resizeMode: "contain",
-    borderRadius: 20, // 모서리를 둥글게 만들기 위해 추가 (필요에 따라 조정)
   },
 });
 
