@@ -14,6 +14,14 @@ from fastapi import FastAPI, UploadFile, File
 
 import os
 
+# randomnum.py
+from routes import randomnum
+app.include_router(randomnum.randomnum)
+
+#login.py
+from routes import login
+app.include_router(login.router)
+
 save_dir = "./uploaded_files"  # 서버 내부 경로
 os.makedirs(save_dir, exist_ok=True)
 
