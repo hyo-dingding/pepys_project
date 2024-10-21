@@ -23,7 +23,7 @@ export default {
         },
         android: {
             adaptiveIcon: {
-                foregroundImage: "./assets/adaptive-icon.png",
+                foregroundImage: "./src/assets/image/adaptive-icon.png",
                 backgroundColor: "#FFFFFF",
             },
         },
@@ -31,7 +31,7 @@ export default {
             supportsTablet: true,
         },
         web: {
-            favicon: "./assets/favicon.png",
+            favicon: "./src/assets/image/favicon.png",
         },
     },
 };
