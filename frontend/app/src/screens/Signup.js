@@ -7,6 +7,7 @@ import {
   Text,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import BackButton from "./BackButton";
 
 const SignUp = () => {
   const [email, setEmail] = useState("");
@@ -32,6 +33,7 @@ const SignUp = () => {
 
   return (
     <View style={styles.container}>
+      <BackButton />
       <View style={styles.formContainer}>
         <TextInput
           style={styles.input}

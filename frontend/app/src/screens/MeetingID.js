@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
+import BackButton from "./BackButton";
 
 const MeetingID = () => {
   const [meetingId, setMeetingId] = useState("");
 
   return (
     <View style={styles.container}>
+      <BackButton />
       <View style={styles.meetingIdContainer}>
         <Text style={styles.label}>Meeting ID</Text>
         <TextInput

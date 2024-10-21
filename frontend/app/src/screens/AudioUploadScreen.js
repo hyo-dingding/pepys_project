@@ -13,6 +13,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as DocumentPicker from "expo-document-picker";
+import BackButton from "./BackButton";
 
 const AudioUploadScreen = () => {
   const navigation = useNavigation();
@@ -51,6 +52,7 @@ const AudioUploadScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <BackButton />
       <View style={styles.content}>
         <Text style={styles.title}>
           Upload your audio recording for AI to transcribe and analyze

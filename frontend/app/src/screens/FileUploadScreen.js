@@ -13,6 +13,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as DocumentPicker from "expo-document-picker";
+import BackButton from "./BackButton";
 
 const FileUploadScreen = () => {
   const navigation = useNavigation();
@@ -31,11 +32,9 @@ const FileUploadScreen = () => {
       });
 
       if (result.type === "success") {
-        // 단일 파일 선택의 경우
         setUploadedFiles([...uploadedFiles, result.name]);
         Alert.alert("Success", "File uploaded successfully!");
       } else if (result.type === "cancel") {
-        // 사용자가 취소한 경우
         console.log("User cancelled file picker");
       }
     } catch (error) {
@@ -53,6 +52,7 @@ const FileUploadScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <BackButton />
       <View style={styles.content}>
         <Text style={styles.title}>
           Upload your document for AI to study your document and use for

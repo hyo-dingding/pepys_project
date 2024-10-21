@@ -5,40 +5,49 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
 } from "react-native";
+import BackButton from "./BackButton";
 
 export default function Login({ navigation }) {
   return (
-    <View style={styles.container}>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>Login</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#CD5C08"
-        />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <BackButton />
+        <View style={styles.formContainer}>
+          <Text style={styles.title}>Login</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#CD5C08"
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#CD5C08"
-          secureTextEntry
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#CD5C08"
+            secureTextEntry
+          />
 
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() =>
-            navigation.navigate("MainTabs", { screen: "RoomSetup" })
-          }
-        >
-          <Text style={styles.buttonText}>Login</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() =>
+              navigation.navigate("MainTabs", { screen: "RoomSetup" })
+            }
+          >
+            <Text style={styles.buttonText}>Login</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "white",
+  },
   container: {
     flex: 1,
     justifyContent: "center",

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/Ionicons";
+import BackButton from "./BackButton";
 
 const languages = [
   { code: "ko", name: "한국어" },
@@ -56,6 +57,7 @@ const Recording = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <BackButton />
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerButton} onPress={showShareModal}>
           <Text style={styles.headerButtonText}>Share Link</Text>
