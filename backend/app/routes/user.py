@@ -1,12 +1,22 @@
 from fastapi import APIRouter, HTTPException, status
 from passlib.context import CryptContext
-from models.user import User, UpdateUser
-from config.db import conn
+from models.user import User, UpdateUser, EmailRequest, ResetPasswordRequest
+from config.db import conn, mail_conf
 from schemas.user import userEntity, usersEntity
 from bson import ObjectId
-
+from fastapi_mail import FastMail, MessageSchema
+import random
 import re
 from passlib.hash import bcrypt
+from routes.randomnum import get_random_number
+# import subprocess
+# import requests
+
+from dotenv import load_dotenv
+import os
+
+# .env 파일에서 환경 변수 로드
+load_dotenv()
 
 user = APIRouter()
 
@@ -101,8 +111,66 @@ async def update_users(id, user: UpdateUser):
     conn.rag_db.user.find_one_and_update({"_id":ObjectId(id)}, {"$set":dict(user)})
     return userEntity(conn.rag_db.user.find_one({"_id":ObjectId(id)}))
    
-   
+# 사용자 계정 삭제
 @user.delete("/user/{id}")
 async def delete_users(id):
     return userEntity(conn.rag_db.user.find_one_and_delete({"_id":ObjectId(id)}))
 
+# 1. 이메일 주소 입력 -> 랜덤 비밀번호 전송
+@user.post("/forgot-password/")
+async def send_reset_code(email_request: EmailRequest):
+    email = email_request.email
+
+    # 데이터베이스에서 해당 이메일을 가진 사용자 검색
+    user_data = conn.rag_db.user.find_one({"email": email})
+    
+    if user_data is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 랜덤 코드 생성
+    # random_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    random_code_response = await get_random_number(length=6)  # 6자리 랜덤 코드 생성
+    random_code = random_code_response["random_number"]
+    
+    # MongoDB에 랜덤 코드 업데이트
+    conn.rag_db.user.update_one(
+        {"_id": user_data["_id"]},
+        {"$set": {"reset_code": random_code}}
+    )
+    
+    # 이메일 전송
+    message = MessageSchema(
+        subject="비밀번호 재설정 코드",
+        recipients=[email],
+        body=f"비밀번호 재설정을 위한 코드는 {random_code}입니다.",
+        subtype="plain"
+    )
+
+    fm = FastMail(mail_conf)
+    try:
+        await fm.send_message(message)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"이메일 전송 실패: {str(e)}")
+    
+    return {"message": "비밀번호 재설정 코드가 이메일로 전송되었습니다."}
+
+# 2. 랜덤 코드 입력 -> 비밀번호 재설정
+@user.post("/reset-password/")
+async def reset_password(request: ResetPasswordRequest):
+    email, random_code, new_password = request.email, request.random_code, request.new_password
+
+    # 데이터베이스에서 해당 이메일을 가진 사용자 검색
+    user_data = conn.rag_db.user.find_one({"email": email})
+    if user_data is None or user_data.get("reset_code") != random_code:
+        raise HTTPException(status_code=400, detail="잘못된 이메일 또는 인증 코드입니다.")
+    
+    # 비밀번호 해싱
+    hashed_password = get_password_hash(new_password)
+
+    # 새 비밀번호 업데이트 및 reset_code 삭제
+    conn.rag_db.user.update_one(
+        {"_id": user_data["_id"]},
+        {"$set": {"hashed_password": hashed_password, "reset_code": None}}
+    )
+
+    return {"message": "비밀번호가 성공적으로 재설정되었습니다."}
