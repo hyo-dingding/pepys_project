@@ -31,3 +31,11 @@ class Token(BaseModel):
 # 토큰에서 추출되는 데이터 스키마
 class TokenData(BaseModel):
     email: str | None = None  # 토큰에 포함된 이메일 정보 (없을 수도 있음)
+
+class EmailRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    random_code: str
+    new_password: str
