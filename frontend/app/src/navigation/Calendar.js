@@ -5,16 +5,17 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   Keyboard,
+  Modal,
+  TextInput,
 } from "react-native";
 import React, { useState } from "react";
 import Header from "../screens/Header";
 
 // Utility function to calculate the number of days in a given month/year
 const getDaysInMonth = (month, year) => {
-  return new Date(year, month + 1, 0).getDate(); // 0 gets the last day of the previous month
+  return new Date(year, month + 1, 0).getDate();
 };
 
-// Array of month names for display
 const months = [
   "January",
   "February",
@@ -31,61 +32,95 @@ const months = [
 ];
 
 export default function Calendar() {
-  const [selectedDate, setSelectedDate] = useState(null); // State to track selected date
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth()); // Set to current month
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear()); // Set to current year
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [tasks, setTasks] = useState({}); // To store tasks for each date
+  const [modalVisible, setModalVisible] = useState(false); // For showing add task modal
+  const [newTask, setNewTask] = useState(""); // To store the new task input
 
-  // Get the current date
   const today = new Date();
   const todayDate = today.getDate();
   const todayMonth = today.getMonth();
   const todayYear = today.getFullYear();
 
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-  // Get the number of days in the selected month/year
   const daysInMonth = getDaysInMonth(currentMonth, currentYear);
-  const dates = Array.from({ length: daysInMonth }, (_, i) => i + 1); // Generate array of days in the month
+  const dates = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-  // Handler for selecting a date
+  // Handle date press to show tasks
   const handleDatePress = (date) => {
     setSelectedDate(date);
   };
 
-  // Handler to go to the previous month
   const handlePreviousMonth = () => {
     if (currentMonth === 0) {
-      setCurrentMonth(11); // Wrap to December of the previous year
+      setCurrentMonth(11);
       setCurrentYear(currentYear - 1);
     } else {
       setCurrentMonth(currentMonth - 1);
     }
   };
 
-  // Handler to go to the next month
   const handleNextMonth = () => {
     if (currentMonth === 11) {
-      setCurrentMonth(0); // Wrap to January of the next year
+      setCurrentMonth(0);
       setCurrentYear(currentYear + 1);
     } else {
       setCurrentMonth(currentMonth + 1);
     }
   };
 
-  // Handler to deselect date when clicked outside the calendar
-  const handleOutsidePress = () => {
-    setSelectedDate(null);
-    Keyboard.dismiss(); // Dismiss the keyboard if any input is focused (optional)
+  // Add task to selected date
+  const handleAddTask = () => {
+    if (selectedDate && newTask.trim()) {
+      setTasks((prevTasks) => ({
+        ...prevTasks,
+        [`${currentYear}-${currentMonth}-${selectedDate}`]: [
+          ...(prevTasks[`${currentYear}-${currentMonth}-${selectedDate}`] ||
+            []),
+          newTask,
+        ],
+      }));
+      setNewTask("");
+      setModalVisible(false);
+    }
   };
 
   return (
-    <TouchableWithoutFeedback onPress={handleOutsidePress}>
+    <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <View style={{ flex: 1 }}>
         <Header title="Calendar" />
 
+        {/* Add Task Modal */}
+        <Modal visible={modalVisible} animationType="slide" transparent={true}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add Task</Text>
+              <TextInput
+                style={styles.taskInput}
+                placeholder="Enter task"
+                value={newTask}
+                onChangeText={setNewTask}
+              />
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleAddTask}
+              >
+                <Text style={styles.addButtonText}>Add Task</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
         {/* Calendar Container */}
         <View style={styles.calendarContainer}>
-          {/* Header Section */}
           <View style={styles.header}>
             <TouchableOpacity onPress={handlePreviousMonth}>
               <Text style={styles.navButton}>Previous</Text>
@@ -98,7 +133,6 @@ export default function Calendar() {
             </TouchableOpacity>
           </View>
 
-          {/* Days of the week */}
           <View style={styles.calendarGrid}>
             {daysOfWeek.map((day, index) => (
               <View key={index} style={styles.dayContainer}>
@@ -114,7 +148,6 @@ export default function Calendar() {
             ))}
           </View>
 
-          {/* Dates */}
           <View style={styles.calendarGrid}>
             {dates.map((date, index) => (
               <TouchableOpacity
@@ -124,13 +157,12 @@ export default function Calendar() {
               >
                 <View
                   style={[
-                    // Check if the current date is today's date
                     todayDate === date &&
                     currentMonth === todayMonth &&
                     currentYear === todayYear
-                      ? styles.todayIndicator // Highlight today in blue
+                      ? styles.todayIndicator
                       : selectedDate === date
-                      ? styles.selectedDateIndicator // Only highlight selected date if clicked
+                      ? styles.selectedDateIndicator
                       : null,
                   ]}
                 >
@@ -148,14 +180,36 @@ export default function Calendar() {
             ))}
           </View>
 
-          {/* Notes Section */}
-          <View style={styles.noteSection}>
-            <Text style={styles.noteText}>
+          {/* Tasks Section */}
+          <View style={styles.tasksSection}>
+            <Text style={styles.taskHeader}>
               {selectedDate
-                ? "No notes for this date"
-                : "Select a date to view notes"}
+                ? `Tasks for ${selectedDate} ${months[currentMonth]}:`
+                : "Select a date to view tasks"}
             </Text>
+            {selectedDate &&
+            tasks[`${currentYear}-${currentMonth}-${selectedDate}`] ? (
+              tasks[`${currentYear}-${currentMonth}-${selectedDate}`].map(
+                (task, index) => (
+                  <Text key={index} style={styles.taskItem}>
+                    {task}
+                  </Text>
+                )
+              )
+            ) : (
+              <Text>No tasks for this date.</Text>
+            )}
           </View>
+
+          {/* Add Task Button */}
+          {selectedDate && (
+            <TouchableOpacity
+              style={styles.addTaskButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={styles.addTaskButtonText}>Add Task</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </TouchableWithoutFeedback>
@@ -202,30 +256,87 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   weekendText: {
-    color: "#ff0000", // Red for weekends
+    color: "#ff0000",
   },
   selectedDateIndicator: {
     borderRadius: 50,
-    backgroundColor: "#d3d3d3", // Light gray to indicate selected date
+    backgroundColor: "#d3d3d3",
     padding: 10,
     justifyContent: "center",
     alignItems: "center",
   },
   todayIndicator: {
     borderRadius: 50,
-    backgroundColor: "#4285F4", // Blue for today's date
+    backgroundColor: "#4285F4",
     padding: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-  noteSection: {
+  tasksSection: {
     marginTop: 20,
     padding: 15,
     backgroundColor: "#f7f7f7",
     borderRadius: 10,
   },
-  noteText: {
+  taskHeader: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  taskItem: {
     fontSize: 14,
-    color: "#000",
+    marginVertical: 5,
+  },
+  addTaskButton: {
+    marginTop: 20,
+    backgroundColor: "#4285F4",
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  addTaskButtonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    width: 300,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  taskInput: {
+    width: "100%",
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  addButton: {
+    backgroundColor: "#4285F4",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontSize: 16,
+  },
+  cancelButton: {
+    marginTop: 10,
+  },
+  cancelButtonText: {
+    color: "#4285F4",
+    fontSize: 16,
   },
 });
