@@ -1,113 +1,119 @@
-import React, { useEffect } from "react";
-import { View, Image, StyleSheet, Animated, Easing } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Image, View, StyleSheet, Animated, Text, Easing } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 const LoadingScreen = () => {
-  const logoAnimation = new Animated.Value(0);
-  const opacityAnimation = new Animated.Value(0.5);
+  const logoScale = useRef(new Animated.Value(0)).current;
+  const typingText = useRef(new Animated.Value(0)).current;
+  const fadeIn = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     animateLogo();
-    animateOpacity();
+    animateText();
+    animateBackground();
   }, []);
 
   const animateLogo = () => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoAnimation, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoAnimation, {
-          toValue: -1,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoAnimation, {
-          toValue: 0,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
+    Animated.spring(logoScale, {
+      toValue: 1,
+      friction: 4,
+      tension: 50,
+      useNativeDriver: true,
+    }).start();
   };
 
-  const animateOpacity = () => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacityAnimation, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnimation, {
-          toValue: 0.5,
-          duration: 1000,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
+  const animateText = () => {
+    Animated.timing(typingText, {
+      toValue: 5,
+      duration: 2500,
+      easing: Easing.out(Easing.exp),
+      useNativeDriver: false,
+    }).start();
   };
 
-  const rotation = logoAnimation.interpolate({
-    inputRange: [-1, 1],
-    outputRange: ["-5deg", "5deg"],
-  });
+  const animateBackground = () => {
+    Animated.timing(fadeIn, {
+      toValue: 1,
+      duration: 2000,
+      easing: Easing.inOut(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const renderTypingText = () => {
+    const text = "Pepys";
+    const length = typingText.interpolate({
+      inputRange: [0, 5],
+      outputRange: [0, text.length],
+    });
+    return (
+      <Animated.Text style={styles.typingText}>
+        {text.substring(0, Math.round(length.__getValue()))}
+      </Animated.Text>
+    );
+  };
 
   return (
-    <View style={styles.loadingContainer}>
-      <Animated.View
-        style={[
-          styles.logoBackground,
-          {
-            opacity: opacityAnimation,
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.logoContainer,
-          {
-            transform: [{ rotate: rotation }],
-          },
-        ]}
+    <Animated.View style={[{ flex: 1, opacity: fadeIn }]}>
+      <LinearGradient
+        colors={["#4A00E0", "#8E2DE2", "#F7971E"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientBackground}
       >
-        <Image
-          source={require("../assets/image/logo3.png")}
-          style={styles.logo}
-        />
-      </Animated.View>
-    </View>
+        <View style={styles.container}>
+          <Animated.View
+            style={[
+              styles.logoContainer,
+              {
+                transform: [{ scale: logoScale }],
+              },
+            ]}
+          >
+            <Image
+              source={require("../../src/assets/image/logo-nobackground.png")}
+              style={styles.logo}
+            />
+          </Animated.View>
+          {renderTypingText()}
+        </View>
+      </LinearGradient>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+  gradientBackground: {
+    flex: 1,
+  },
+  container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#4A00E0", // 단색 배경
+    backgroundColor: "#FFFFFF",
   },
   logoContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderRadius: 20,
-    padding: 20,
-    overflow: "hidden",
-    elevation: 10,
+    padding: 0,
+    elevation: 25,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
   },
   logo: {
-    width: 150,
-    height: 150,
+    width: 200,
+    height: 200,
     resizeMode: "contain",
+  },
+  typingText: {
+    marginTop: 40,
+    fontSize: 32,
+    color: "#F7971E",
+    fontWeight: "800",
+    letterSpacing: 2,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
 });
 
