@@ -9,12 +9,10 @@ import {
   ScrollView,
   StatusBar,
   Clipboard,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/Ionicons";
 import BackButton from "./BackButton";
-import RecordingHeaderControl from "./RecordingHeaderControl";
 
 const languages = [
   { code: "ko", name: "한국어" },
@@ -32,7 +30,6 @@ const Recording = () => {
   const [selectingLanguage, setSelectingLanguage] = useState(null);
   const [activeTab, setActiveTab] = useState("transcription");
   const [roomCode, setRoomCode] = useState("4129");
-  const [showHeaderControls] = useState(true); // 헤더 컨트롤 표시 여부
 
   const toggleModal = (type) => {
     setSelectingLanguage(type);
@@ -54,20 +51,29 @@ const Recording = () => {
 
   const copyRoomCode = () => {
     Clipboard.setString(roomCode);
-    Alert.alert("Success", "Room code copied to clipboard!");
+    // You might want to show a toast or some feedback here
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <BackButton />
-      <RecordingHeaderControl
-        showControls={showHeaderControls}
-        onSharePress={showShareModal}
-        onSessionCutPress={() => {
-          /* Session Cut 기능 구현 */
-        }}
-      />
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.headerButton} onPress={showShareModal}>
+          <Text style={styles.headerButtonText}>Share Link</Text>
+        </TouchableOpacity>
+        <View style={styles.headerControls}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Icon name="play" size={24} color="#FF3B30" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Icon name="stop" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity style={styles.headerButton}>
+          <Text style={styles.headerButtonText}>Session Cut</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.tabs}>
         <TouchableOpacity
@@ -193,6 +199,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  headerButton: {
+    padding: 8,
+  },
+  headerButtonText: {
+    color: "#007AFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  headerControls: {
+    flexDirection: "row",
+  },
+  iconButton: {
+    marginHorizontal: 8,
+    padding: 8,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 20,
   },
   tabs: {
     flexDirection: "row",
