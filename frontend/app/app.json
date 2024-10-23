@@ -28,6 +28,7 @@
         "projectId": "6799ec86-9fbf-4758-9088-4e47741668fb"
       }
     },
+    "plugins": ["react-native-reanimated/plugin"],
     "owner": "HyoJinPark"
   }
 }
