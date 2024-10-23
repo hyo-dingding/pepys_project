@@ -17,12 +17,10 @@ import BackButton from "./BackButton";
 
 const FileUploadScreen = () => {
   const navigation = useNavigation();
-  const [uploadedFiles, setUploadedFiles] = useState([
-    "reference1.pdf",
-    "reference2.doc",
-    "reference3.pptx",
-  ]);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [activeDeleteIndex, setActiveDeleteIndex] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleUpload = async () => {
     try {
@@ -33,7 +31,8 @@ const FileUploadScreen = () => {
 
       if (result.type === "success") {
         setUploadedFiles([...uploadedFiles, result.name]);
-        Alert.alert("Success", "File uploaded successfully!");
+        setSelectedFiles([...selectedFiles, result]);
+        Alert.alert("Success", "File selected successfully!");
       } else if (result.type === "cancel") {
         console.log("User cancelled file picker");
       }
@@ -45,9 +44,62 @@ const FileUploadScreen = () => {
 
   const handleDeleteFile = (index) => {
     const newFiles = [...uploadedFiles];
+    const newSelectedFiles = [...selectedFiles];
     newFiles.splice(index, 1);
+    newSelectedFiles.splice(index, 1);
     setUploadedFiles(newFiles);
+    setSelectedFiles(newSelectedFiles);
     setActiveDeleteIndex(null);
+  };
+
+  const handleSave = async () => {
+    if (selectedFiles.length === 0) {
+      Alert.alert("Error", "Please select files to upload first");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const formData = new FormData();
+      selectedFiles.forEach((file, index) => {
+        formData.append("files", {
+          uri: file.uri,
+          type: file.mimeType,
+          name: file.name,
+        });
+      });
+
+      const response = await fetch("YOUR_BACKEND_API_URL/upload", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.ok) {
+        Alert.alert("Success", "Files uploaded successfully!", [
+          {
+            text: "OK",
+            onPress: () => navigation.navigate("Recording"),
+          },
+        ]);
+        setUploadedFiles([]);
+        setSelectedFiles([]);
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      Alert.alert("Error", "Failed to upload files. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSkip = () => {
+    navigation.navigate("Recording");
   };
 
   return (
@@ -59,7 +111,11 @@ const FileUploadScreen = () => {
           translation & summarization
         </Text>
         <View style={styles.uploadButtonContainer}>
-          <TouchableOpacity style={styles.uploadButton} onPress={handleUpload}>
+          <TouchableOpacity
+            style={styles.uploadButton}
+            onPress={handleUpload}
+            disabled={isLoading}
+          >
             <Ionicons name="cloud-upload-outline" size={40} color="black" />
           </TouchableOpacity>
         </View>
@@ -73,6 +129,7 @@ const FileUploadScreen = () => {
                   onPress={() => handleDeleteFile(index)}
                   onPressIn={() => setActiveDeleteIndex(index)}
                   onPressOut={() => setActiveDeleteIndex(null)}
+                  disabled={isLoading}
                 >
                   <Ionicons
                     name="close-circle"
@@ -85,10 +142,20 @@ const FileUploadScreen = () => {
           </ScrollView>
         </View>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Save</Text>
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleSave}
+            disabled={isLoading}
+          >
+            <Text style={styles.buttonText}>
+              {isLoading ? "Uploading..." : "Save"}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleSkip}
+            disabled={isLoading}
+          >
             <Text style={styles.buttonText}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -179,6 +246,9 @@ const styles = StyleSheet.create({
     padding: 10,
     width: "48%",
     alignItems: "center",
+  },
+  buttonDisabled: {
+    backgroundColor: "#BDBDBD",
   },
   buttonText: {
     color: "white",

@@ -17,22 +17,27 @@ import BackButton from "./BackButton";
 
 const AudioUploadScreen = () => {
   const navigation = useNavigation();
-  const [uploadedFiles, setUploadedFiles] = useState([
-    "audio1.mp3",
-    "audio2.wav",
-    "audio3.m4a",
-  ]);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [activeDeleteIndex, setActiveDeleteIndex] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleUpload = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: "audio/*",
         multiple: true,
+        copyToCacheDirectory: true,
       });
 
       if (result.type === "success") {
-        setUploadedFiles([...uploadedFiles, result.name]);
+        const newFile = {
+          name: result.name,
+          uri: result.uri,
+          type: result.mimeType,
+          size: result.size,
+        };
+
+        setUploadedFiles([...uploadedFiles, newFile]);
         Alert.alert("Success", "Audio file uploaded successfully!");
       } else if (result.type === "cancel") {
         console.log("User cancelled file picker");
@@ -50,6 +55,61 @@ const AudioUploadScreen = () => {
     setActiveDeleteIndex(null);
   };
 
+  const handleSave = async () => {
+    if (uploadedFiles.length === 0) {
+      Alert.alert("Error", "Please upload at least one file");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // TODO: 백엔드 연동 후 주석 해제
+      /*
+      for (const file of uploadedFiles) {
+        const formData = new FormData();
+        formData.append('audio', {
+          uri: file.uri,
+          type: file.type,
+          name: file.name,
+        });
+
+        const response = await fetch('YOUR_BACKEND_URL/upload', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            // 'Authorization': `Bearer ${YOUR_TOKEN}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Upload success:', data);
+      }
+      */
+
+      Alert.alert("Success", "All files uploaded successfully!", [
+        {
+          text: "OK",
+          onPress: () => {
+            // TODO: 다음 페이지 컴포넌트 생성 후 주석 해제
+            // navigation.navigate("NextScreen")
+            console.log("Navigate to next screen");
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error("Upload error:", error);
+      Alert.alert("Error", "Failed to upload files to server");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <BackButton />
@@ -58,20 +118,29 @@ const AudioUploadScreen = () => {
           Upload your audio recording for AI to transcribe and analyze
         </Text>
         <View style={styles.uploadButtonContainer}>
-          <TouchableOpacity style={styles.uploadButton} onPress={handleUpload}>
-            <Ionicons name="cloud-upload-outline" size={40} color="black" />
+          <TouchableOpacity
+            style={styles.uploadButton}
+            onPress={handleUpload}
+            disabled={isLoading}
+          >
+            <Ionicons
+              name="cloud-upload-outline"
+              size={40}
+              color={isLoading ? "#999" : "black"}
+            />
           </TouchableOpacity>
         </View>
         <View style={styles.fileListContainer}>
           <ScrollView style={styles.fileList}>
             {uploadedFiles.map((file, index) => (
               <View key={index} style={styles.fileItem}>
-                <Text style={styles.fileItemText}>{file}</Text>
+                <Text style={styles.fileItemText}>{file.name}</Text>
                 <TouchableOpacity
                   style={styles.deleteButton}
                   onPress={() => handleDeleteFile(index)}
                   onPressIn={() => setActiveDeleteIndex(index)}
                   onPressOut={() => setActiveDeleteIndex(null)}
+                  disabled={isLoading}
                 >
                   <Ionicons
                     name="close-circle"
@@ -84,11 +153,14 @@ const AudioUploadScreen = () => {
           </ScrollView>
         </View>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Save</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Skip</Text>
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleSave}
+            disabled={isLoading}
+          >
+            <Text style={styles.buttonText}>
+              {isLoading ? "Uploading..." : "Save"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -96,16 +168,17 @@ const AudioUploadScreen = () => {
         <TouchableOpacity
           style={styles.tabItem}
           onPress={() => navigation.navigate("Home")}
+          disabled={isLoading}
         >
           <Ionicons name="home-outline" size={24} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}>
+        <TouchableOpacity style={styles.tabItem} disabled={isLoading}>
           <Ionicons name="folder-outline" size={24} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}>
+        <TouchableOpacity style={styles.tabItem} disabled={isLoading}>
           <Ionicons name="calendar-outline" size={24} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem}>
+        <TouchableOpacity style={styles.tabItem} disabled={isLoading}>
           <Ionicons name="person-outline" size={24} color="black" />
         </TouchableOpacity>
       </View>
@@ -168,8 +241,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 50,
   },
   button: {
@@ -178,6 +250,9 @@ const styles = StyleSheet.create({
     padding: 10,
     width: "48%",
     alignItems: "center",
+  },
+  buttonDisabled: {
+    backgroundColor: "#CCCCCC",
   },
   buttonText: {
     color: "white",
