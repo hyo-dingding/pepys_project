@@ -21,12 +21,14 @@ const AudioUploadScreen = () => {
   const navigation = useNavigation();
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [activeDeleteIndex, setActiveDeleteIndex] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleUpload = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: "audio/*",
         multiple: true,
+        copyToCacheDirectory: true,
       });
 
       if (result.type === "success") {

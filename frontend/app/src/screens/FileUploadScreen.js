@@ -18,6 +18,7 @@ const FileUploadScreen = () => {
   const navigation = useNavigation();
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [activeDeleteIndex, setActiveDeleteIndex] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const getFileIcon = (fileType) => {
     switch (fileType.toLowerCase()) {
@@ -57,8 +58,11 @@ const FileUploadScreen = () => {
 
   const handleDeleteFile = (index) => {
     const newFiles = [...uploadedFiles];
+    const newSelectedFiles = [...selectedFiles];
     newFiles.splice(index, 1);
+    newSelectedFiles.splice(index, 1);
     setUploadedFiles(newFiles);
+    setSelectedFiles(newSelectedFiles);
     setActiveDeleteIndex(null);
   };
 
