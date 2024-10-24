@@ -62,7 +62,6 @@ const AudioUploadScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <BackButton />
       <View style={styles.content}>
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Upload Audio</Text>

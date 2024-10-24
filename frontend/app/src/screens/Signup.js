@@ -10,10 +10,12 @@ import {
   TouchableWithoutFeedback,
   Dimensions,
   SafeAreaView,
+  Alert, // 추가
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { Keyboard } from "react-native";
+import axios from "axios";
 
 const nationalities = [
   "United States",
@@ -160,15 +162,60 @@ const SignUp = () => {
     }
   };
 
-  const handleSignUp = () => {
-    console.log("Sign up with:", {
-      email,
-      password,
-      name,
-      nationality,
-      workTitle,
-    });
-    navigation.navigate("MainTabs");
+  const handleSignUp = async () => {
+    try {
+      const response = await axios.post(
+        "https://38f1-218-148-117-157.ngrok-free.app/user",
+        {
+          email: email,
+          password: password,
+          password_retype: password,
+          name: name,
+          nationality: nationality,
+          work_title: workTitle,
+        }
+      );
+
+      console.log(response.data);
+      console.log(response.status);
+
+      // axios는 2xx 상태 코드일 때 성공으로 처리됩니다
+      if (response.status === 200 || response.status === 201) {
+        Alert.alert("Success", "Sign up completed successfully.", [
+          {
+            text: "OK",
+            onPress: () => navigation.navigate("MainTabs"),
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("SignUp Error:", error);
+
+      // axios 에러 응답 처리
+      if (error.response) {
+        // 서버가 응답을 반환한 경우
+        if (
+          error.response.status === 400 &&
+          error.response.data.detail === "Email already registered"
+        ) {
+          Alert.alert("Error", "Email is already registered.");
+        } else {
+          Alert.alert(
+            "Error",
+            "An error occurred during sign up. Please try again."
+          );
+        }
+      } else if (error.request) {
+        // 요청이 전송되었지만 응답을 받지 못한 경우
+        Alert.alert(
+          "Error",
+          "Failed to connect to server. Please check your network connection."
+        );
+      } else {
+        // 요청 설정 중에 문제가 발생한 경우
+        Alert.alert("Error", "An error occurred while setting up the request.");
+      }
+    }
   };
 
   const renderPicker = (visible, data, onSelect, onClose, title) => (
@@ -219,12 +266,6 @@ const SignUp = () => {
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Sign up to get started</Text>
-          </View>
-
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Icon name="arrow-back" size={24} color="#000" />
-            </TouchableOpacity>
           </View>
 
           <View style={styles.formContainer}>
@@ -311,7 +352,6 @@ const SignUp = () => {
               </View>
             </View>
 
-            {/* Confirm Password */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Confirm Password</Text>
               <TextInput
@@ -330,7 +370,6 @@ const SignUp = () => {
               )}
             </View>
 
-            {/* Name Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Name</Text>
               <TextInput
@@ -342,7 +381,6 @@ const SignUp = () => {
               />
             </View>
 
-            {/* Nationality Picker */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Nationality</Text>
               <TouchableOpacity
@@ -360,7 +398,6 @@ const SignUp = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Occupation Picker */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>job Title</Text>
               <TouchableOpacity
@@ -378,12 +415,15 @@ const SignUp = () => {
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* SignUp Button */}
           <TouchableOpacity
             style={[
               styles.signUpButton,
-              (!validateEmail(email) || !password || !name) &&
+              (!validateEmail(email) ||
+                !validatePassword(password).isValid ||
+                password !== passwordReType ||
+                !name ||
+                !nationality ||
+                !workTitle) &&
                 styles.signUpButtonDisabled,
             ]}
             onPress={handleSignUp}
@@ -391,13 +431,14 @@ const SignUp = () => {
               !validateEmail(email) ||
               !validatePassword(password).isValid ||
               password !== passwordReType ||
-              !name
+              !name ||
+              !nationality ||
+              !workTitle
             }
           >
             <Text style={styles.signUpButtonText}>Create Account</Text>
           </TouchableOpacity>
 
-          {/* Nationality Picker */}
           {renderPicker(
             showNationalityPicker,
             nationalities,
@@ -406,7 +447,6 @@ const SignUp = () => {
             "Select Nationality"
           )}
 
-          {/* Occupation Picker */}
           {renderPicker(
             showOccupationPicker,
             jobTitle,
@@ -428,8 +468,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    justifyContent: "center", // 추가
-    paddingTop: 0, // 수정 (기존 20)
+    justifyContent: "center",
+    paddingTop: 0,
   },
   titleContainer: {
     marginTop: 60,
@@ -467,6 +507,9 @@ const styles = StyleSheet.create({
     borderColor: "#E9ECEF",
   },
   inputError: {
+    borderColor: "#FF3B30",
+  },
+  inputRequired: {
     borderColor: "#FF3B30",
   },
   errorText: {
@@ -556,13 +599,6 @@ const styles = StyleSheet.create({
   },
   requirementNotMet: {
     color: "#666666",
-  },
-  header: {
-    // 뒤로가기 버튼
-    position: "absolute", // 기존 위치를 유지하기 위한 설정
-    top: 20, // 위에서 40px 아래로 설정
-    left: 20, // 왼쪽에서 20px 떨어지도록 설정
-    zIndex: 1, // 다른 UI 요소보다 위에 표시되도록 설정
   },
 });
 

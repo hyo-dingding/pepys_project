@@ -13,7 +13,6 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
-import BackButton from "./BackButton";
 
 const FileUploadScreen = () => {
   const navigation = useNavigation();
@@ -89,7 +88,6 @@ const FileUploadScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <BackButton />
       <View style={styles.content}>
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Upload Documents</Text>
