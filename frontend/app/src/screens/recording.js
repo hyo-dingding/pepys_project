@@ -571,8 +571,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 16, // padding을 50에서 16으로 수정
-    paddingBottom: 90, // 하단 네비게이션 바를 고려한 여백 추가
+    padding: 16,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
@@ -606,7 +605,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "80%",
-    paddingBottom: 20, // 하단 패딩 추가
   },
   modalHeader: {
     flexDirection: "row",
@@ -616,14 +614,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#2D3436",
-  },
   closeButton: {
     padding: 8,
   },
+
   // 공통 버튼 스타일
   iconButton: {
     padding: 8,
@@ -755,27 +749,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "500",
-  },
-  // 언어 선택 아이템 스타일 수정
-  languageItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: "#fff",
-  },
-  languageIcon: {
-    marginRight: 12,
-  },
-  languageItemText: {
-    flex: 1,
-    fontSize: 16,
-    color: "#2D3436",
-    fontWeight: "500",
-  },
-  separator: {
-    height: 1,
-    backgroundColor: "#f0f0f0",
-    marginLeft: 52, // 아이콘 너비 + 마진
   },
 });
 
