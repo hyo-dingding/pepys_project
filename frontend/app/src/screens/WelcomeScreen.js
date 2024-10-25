@@ -1,3 +1,6 @@
+// WelcomeScreen.js
+// 메인 웰컴 스크린 - 앱 시작시 처음 보이는 화면을 담당
+
 import React, { useState } from "react";
 import {
   View,
@@ -16,14 +19,15 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
-import LoginModal from "./Login"; // Login 컴포넌트 임포트
+import LoginModal from "./Login";
 
 const { height } = Dimensions.get("window");
 
 const WelcomeScreen = ({ navigation }) => {
+  // 로그인 모달 표시 여부 상태 관리
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // 애니메이션 값 설정
+  // 애니메이션 초기값 설정
   const titleOpacity = useSharedValue(0);
   const titleTranslateY = useSharedValue(20);
   const subtitleOpacity = useSharedValue(0);
@@ -31,7 +35,7 @@ const WelcomeScreen = ({ navigation }) => {
   const buttonContainerOpacity = useSharedValue(0);
   const buttonContainerTranslateY = useSharedValue(30);
 
-  // 애니메이션 스타일
+  // 애니메이션 스타일 정의
   const titleStyle = useAnimatedStyle(() => ({
     opacity: titleOpacity.value,
     transform: [{ translateY: titleTranslateY.value }],
@@ -47,23 +51,26 @@ const WelcomeScreen = ({ navigation }) => {
     transform: [{ translateY: buttonContainerTranslateY.value }],
   }));
 
-  // 시작 애니메이션
+  // 컴포넌트 마운트 시 실행되는 애니메이션
   React.useEffect(() => {
     const animationConfig = {
-      duration: 1200,
-      easing: Easing.bezier(0.22, 1, 0.36, 1),
+      duration: 1000,
+      easing: Easing.bezier(0.25, 1, 0.5, 1),
     };
 
+    // 타이틀 애니메이션
     setTimeout(() => {
       titleOpacity.value = withTiming(1, animationConfig);
       titleTranslateY.value = withTiming(0, animationConfig);
-    }, 300);
+    }, 200);
 
+    // 서브타이틀 애니메이션
     setTimeout(() => {
       subtitleOpacity.value = withTiming(1, animationConfig);
       subtitleTranslateY.value = withTiming(0, animationConfig);
-    }, 800);
+    }, 1000);
 
+    // 버튼 컨테이너 애니메이션
     setTimeout(() => {
       buttonContainerOpacity.value = withTiming(1, animationConfig);
       buttonContainerTranslateY.value = withTiming(0, animationConfig);
@@ -73,15 +80,18 @@ const WelcomeScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
+      {/* 배경 이미지 설정 */}
       <ImageBackground
         source={require("../../src/assets/image/path_to_background_image.jpg")}
         style={styles.background}
       >
+        {/* 그라데이션 오버레이 */}
         <LinearGradient
-          colors={["rgba(0,0,0,0.5)", "rgba(0,0,0,0.3)", "transparent"]}
+          colors={["rgba(0,0,0,0.7)", "rgba(0,0,0,0.5)", "transparent"]}
           style={styles.gradient}
         >
           <View style={styles.contentContainer}>
+            {/* 타이틀 영역 */}
             <View style={styles.titleContainer}>
               <Animated.Text style={[styles.mainTitle, titleStyle]}>
                 With Pepys,
@@ -91,9 +101,11 @@ const WelcomeScreen = ({ navigation }) => {
               </Animated.Text>
             </View>
 
+            {/* 버튼 영역 */}
             <Animated.View
               style={[styles.buttonContainer, buttonContainerStyle]}
             >
+              {/* 로그인 버튼 */}
               <TouchableOpacity
                 style={styles.welcomeButton}
                 onPress={() => setShowLoginModal(true)}
@@ -101,8 +113,17 @@ const WelcomeScreen = ({ navigation }) => {
                 <Text style={styles.welcomeButtonText}>SIGN IN</Text>
               </TouchableOpacity>
 
+              {/* 회원가입 버튼 */}
               <TouchableOpacity
-                style={[styles.welcomeButton, styles.signUpButton]}
+                style={{
+                  background: "transparent",
+                  borderWidth: 2,
+                  borderRadius: 15,
+                  borderColor: "white",
+                  height: 56,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
                 onPress={() => navigation.navigate("SignUp")}
               >
                 <Text style={styles.signUpButtonText}>SIGN UP</Text>
@@ -110,6 +131,7 @@ const WelcomeScreen = ({ navigation }) => {
             </Animated.View>
           </View>
 
+          {/* 로그인 모달 컴포넌트 */}
           <LoginModal
             visible={showLoginModal}
             onClose={() => setShowLoginModal(false)}
@@ -121,18 +143,23 @@ const WelcomeScreen = ({ navigation }) => {
   );
 };
 
+// 스타일 정의
 const styles = StyleSheet.create({
+  // 메인 컨테이너
   container: {
     flex: 1,
   },
+  // 배경 이미지 스타일
   background: {
     flex: 1,
     resizeMode: "cover",
   },
+  // 그라데이션 스타일
   gradient: {
     flex: 1,
     paddingTop: Platform.OS === "ios" ? 50 : StatusBar.currentHeight + 20,
   },
+  // 콘텐츠 컨테이너 스타일
   contentContainer: {
     flex: 1,
     justifyContent: "space-between",
@@ -140,29 +167,34 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.15,
     paddingBottom: 50,
   },
+  // 타이틀 영역 스타일
   titleContainer: {
     alignItems: "flex-start",
   },
+  // 메인 타이틀 텍스트 스타일
   mainTitle: {
-    fontSize: 42,
+    fontSize: 48,
     fontWeight: "bold",
-    color: "#ffffff",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    color: "#ffeb3b",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowRadius: 5,
   },
+  // 서브 타이틀 텍스트 스타일
   subTitle: {
-    fontSize: 42,
+    fontSize: 38,
     fontWeight: "bold",
     color: "#ffffff",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
     marginTop: 8,
   },
+  // 버튼 컨테이너 스타일
   buttonContainer: {
     width: "100%",
   },
+  // 로그인 버튼 스타일
   welcomeButton: {
     backgroundColor: "#ffffff",
     borderRadius: 15,
@@ -179,147 +211,23 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  // 로그인 버튼 텍스트 스타일
   welcomeButtonText: {
     fontSize: 16,
     fontWeight: "600",
     color: "#6c63ff",
   },
+  // 회원가입 버튼 스타일
   signUpButton: {
     backgroundColor: "transparent",
     borderWidth: 2,
     borderColor: "#ffffff",
   },
+  // 회원가입 버튼 텍스트 스타일
   signUpButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#ffffff",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    minHeight: height * 0.7,
-    padding: 20,
-  },
-  modalHeader: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  modalIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#e9ecef",
-    borderRadius: 2,
-    marginBottom: 20,
-  },
-  closeButton: {
-    position: "absolute",
-    right: 0,
-    top: -10,
-    padding: 8,
-  },
-  modalBody: {
-    flex: 1,
-    alignItems: "center",
-  },
-  modalTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 40,
-  },
-  inputContainer: {
-    width: "100%",
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f8f9fa",
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: "#e9ecef",
-  },
-  input: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
-    color: "#495057",
-  },
-  forgotPassword: {
-    alignSelf: "flex-end",
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    color: "#6c63ff",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  signInButton: {
-    backgroundColor: "#6c63ff",
-    borderRadius: 12,
-    height: 56,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#6c63ff",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
-  signInButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 30,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#e9ecef",
-  },
-  dividerText: {
-    color: "#6c757d",
-    paddingHorizontal: 16,
-    fontSize: 14,
-  },
-  googleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    height: 56,
-    borderWidth: 1,
-    borderColor: "#e9ecef",
-  },
-  googleButtonText: {
-    color: "#444",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 12,
   },
 });
 

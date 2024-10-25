@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -10,23 +10,30 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Animated,
+  PanResponder,
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
 
-const LoginModal = ({ visible, onClose, navigation }) => {
-  const handleLogin = () => {
-    // 로그인 로직 구현
-    navigation.navigate("MainTabs", { screen: "RoomSetup" });
-    onClose();
+const ForgotPasswordModal = ({ visible, onClose }) => {
+  const [email, setEmail] = useState("");
+  const [isEmailSent, setIsEmailSent] = useState(false);
+
+  const handleSubmit = () => {
+    setIsEmailSent(true);
+    setTimeout(() => {
+      setIsEmailSent(false);
+      onClose();
+    }, 3000);
   };
 
   return (
     <Modal
       visible={visible}
       transparent={true}
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
@@ -36,7 +43,141 @@ const LoginModal = ({ visible, onClose, navigation }) => {
         <TouchableWithoutFeedback onPress={onClose}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
+              <View style={styles.forgotPasswordContent}>
+                <TouchableOpacity
+                  style={styles.forgotPasswordCloseButton}
+                  onPress={onClose}
+                >
+                  <MaterialIcons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+
+                {!isEmailSent ? (
+                  <>
+                    <View style={styles.forgotPasswordHeader}>
+                      <MaterialIcons
+                        name="lock-open"
+                        size={50}
+                        color="#6A9C89"
+                      />
+                      <Text style={styles.forgotPasswordTitle}>
+                        Forgot Password?
+                      </Text>
+                      <Text style={styles.forgotPasswordSubtitle}>
+                        Enter your email address and we'll send you instructions
+                        to reset your password.
+                      </Text>
+                    </View>
+
+                    <View style={styles.forgotPasswordInputWrapper}>
+                      <MaterialIcons name="email" size={20} color="#6A9C89" />
+                      <TextInput
+                        style={styles.forgotPasswordInput}
+                        placeholder="Enter your email"
+                        placeholderTextColor="#CD5C08"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                      />
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.forgotPasswordButton}
+                      onPress={handleSubmit}
+                    >
+                      <Text style={styles.forgotPasswordButtonText}>
+                        Send Reset Link
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <View style={styles.successMessage}>
+                    <MaterialIcons
+                      name="check-circle"
+                      size={50}
+                      color="#6A9C89"
+                    />
+                    <Text style={styles.successTitle}>Email Sent!</Text>
+                    <Text style={styles.successText}>
+                      Please check your email for password reset instructions.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
+
+const LoginModal = ({ visible, onClose, navigation }) => {
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const panY = useRef(new Animated.Value(0)).current;
+
+  const resetPositionAnim = Animated.timing(panY, {
+    toValue: 0,
+    duration: 300,
+    useNativeDriver: true,
+  });
+
+  const closeAnim = Animated.timing(panY, {
+    toValue: height,
+    duration: 300,
+    useNativeDriver: true,
+  });
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => false,
+      onPanResponderMove: (e, gs) => {
+        panY.setValue(gs.dy);
+      },
+      onPanResponderRelease: (e, gs) => {
+        if (gs.dy > 50) {
+          closeAnim.start(onClose);
+        } else {
+          resetPositionAnim.start();
+        }
+      },
+    })
+  ).current;
+
+  const handleLogin = () => {
+    navigation.navigate("MainTabs", { screen: "RoomSetup" });
+    onClose();
+  };
+
+  const translateY = panY.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: [0, 0, 1],
+  });
+
+  return (
+    <>
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={onClose}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalContainer}
+        >
+          <TouchableWithoutFeedback onPress={onClose}>
+            <View style={styles.modalOverlay}>
+              <Animated.View
+                style={[
+                  styles.modalContent,
+                  {
+                    transform: [{ translateY }],
+                  },
+                ]}
+                {...panResponder.panHandlers}
+              >
                 <View style={styles.modalHeader}>
                   <View style={styles.modalIndicator} />
                   <TouchableOpacity
@@ -75,7 +216,10 @@ const LoginModal = ({ visible, onClose, navigation }) => {
                       />
                     </View>
 
-                    <TouchableOpacity style={styles.forgotPassword}>
+                    <TouchableOpacity
+                      style={styles.forgotPassword}
+                      onPress={() => setShowForgotPassword(true)}
+                    >
                       <Text style={styles.forgotPasswordText}>
                         Forgot Password?
                       </Text>
@@ -102,12 +246,17 @@ const LoginModal = ({ visible, onClose, navigation }) => {
                     </TouchableOpacity>
                   </View>
                 </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </Modal>
+              </Animated.View>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <ForgotPasswordModal
+        visible={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
+    </>
   );
 };
 
@@ -126,6 +275,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     minHeight: height * 0.7,
     padding: 20,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   modalHeader: {
     alignItems: "center",
@@ -212,6 +365,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 30,
+    padding: 4,
   },
   dividerLine: {
     flex: 1,
@@ -221,7 +375,7 @@ const styles = StyleSheet.create({
   dividerText: {
     color: "#6c757d",
     paddingHorizontal: 16,
-    fontSize: 14,
+    fontSize: 16,
   },
   googleButton: {
     flexDirection: "row",
@@ -238,6 +392,92 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 12,
+  },
+  forgotPasswordContent: {
+    backgroundColor: "#fff",
+    marginHorizontal: 20,
+    marginVertical: height * 0.2,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  forgotPasswordCloseButton: {
+    position: "absolute",
+    right: 15,
+    top: 15,
+    zIndex: 1,
+  },
+  forgotPasswordHeader: {
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  forgotPasswordTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#333",
+    marginVertical: 10,
+  },
+  forgotPasswordSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  forgotPasswordInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    marginVertical: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+    width: "100%",
+  },
+  forgotPasswordInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: "#495057",
+  },
+  forgotPasswordButton: {
+    backgroundColor: "#6A9C89",
+    borderRadius: 12,
+    height: 50,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  forgotPasswordButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  successMessage: {
+    alignItems: "center",
+    padding: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#333",
+    marginVertical: 15,
+  },
+  successText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
   },
 });
 

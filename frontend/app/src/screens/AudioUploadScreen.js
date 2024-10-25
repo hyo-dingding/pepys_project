@@ -1,3 +1,6 @@
+// AudioUploadScreen.js
+
+// 필요한 라이브러리 및 컴포넌트 import
 import React, { useState } from "react";
 import {
   View,
@@ -15,14 +18,17 @@ import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 
+// 화면 너비 가져오기
 const { width } = Dimensions.get("window");
 
 const AudioUploadScreen = () => {
+  // 네비게이션 및 상태 관리
   const navigation = useNavigation();
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [activeDeleteIndex, setActiveDeleteIndex] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // 파일 업로드 처리 함수 (테스트를 위해 임시로 주석처리)
   const handleUpload = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -44,6 +50,7 @@ const AudioUploadScreen = () => {
     }
   };
 
+  // 파일 삭제 처리 함수
   const handleDeleteFile = (index) => {
     const newFiles = [...uploadedFiles];
     newFiles.splice(index, 1);
@@ -51,6 +58,12 @@ const AudioUploadScreen = () => {
     setActiveDeleteIndex(null);
   };
 
+  // 저장 버튼 처리 함수 (테스트를 위해 조건 제거)
+  const handleSave = () => {
+    navigation.navigate("Summary", { files: uploadedFiles });
+  };
+
+  // 빈 상태 렌더링 함수
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyStateText}>No audio files uploaded yet</Text>
@@ -63,6 +76,7 @@ const AudioUploadScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
+        {/* 헤더 섹션 */}
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Upload Audio</Text>
           <Text style={styles.subtitle}>
@@ -70,6 +84,7 @@ const AudioUploadScreen = () => {
           </Text>
         </View>
 
+        {/* 업로드 버튼 섹션 */}
         <View style={styles.uploadSection}>
           <TouchableOpacity style={styles.uploadButton} onPress={handleUpload}>
             <View style={styles.uploadIconContainer}>
@@ -80,6 +95,7 @@ const AudioUploadScreen = () => {
           </TouchableOpacity>
         </View>
 
+        {/* 파일 목록 섹션 */}
         <View style={styles.filesSection}>
           <View style={styles.filesSectionHeader}>
             <Text style={styles.filesSectionTitle}>
@@ -121,30 +137,13 @@ const AudioUploadScreen = () => {
           </View>
         </View>
 
+        {/* 저장 버튼 (테스트를 위해 조건부 스타일 제거) */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={[
-              styles.button,
-              styles.saveButton,
-              uploadedFiles.length === 0 && styles.disabledButton,
-            ]}
-            disabled={uploadedFiles.length === 0}
+            style={[styles.button, styles.saveButton]}
+            onPress={handleSave}
           >
-            <Text
-              style={[
-                styles.buttonText,
-                uploadedFiles.length === 0 && styles.disabledButtonText,
-              ]}
-            >
-              Save
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.skipButton]}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.skipButtonText}>Skip</Text>
+            <Text style={styles.buttonText}>Save</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -152,6 +151,7 @@ const AudioUploadScreen = () => {
   );
 };
 
+// 스타일 정의
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -206,8 +206,7 @@ const styles = StyleSheet.create({
     color: "#636E72",
   },
   filesSection: {
-    flex: 0.8,
-    marginBottom: 20, // 하단 여백 추가
+    flex: 0.4,
   },
   filesSectionHeader: {
     flexDirection: "row",
@@ -221,7 +220,6 @@ const styles = StyleSheet.create({
     color: "#2D3436",
   },
   fileListContainer: {
-    flex: 1,
     backgroundColor: "#f8f9fa",
     borderRadius: 16,
     padding: 16,
@@ -279,14 +277,13 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingTop: 16, // 패딩 감소
-    gap: 12,
-    marginBottom: 20, // 하단 여백 추가
+    position: "absolute",
+    bottom: 90,
+    left: 20,
+    right: 20,
+    paddingVertical: 10,
   },
   button: {
-    flex: 1,
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
@@ -295,24 +292,10 @@ const styles = StyleSheet.create({
   saveButton: {
     backgroundColor: "#6A9C89",
   },
-  skipButton: {
-    backgroundColor: "#f8f9fa",
-  },
   buttonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-  },
-  skipButtonText: {
-    color: "#666",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  disabledButton: {
-    backgroundColor: "#E0E0E0",
-  },
-  disabledButtonText: {
-    color: "#999",
   },
 });
 
