@@ -15,6 +15,11 @@ import Login from "./src/screens/Login";
 import SignUp from "./src/screens/Signup";
 import LoadingScreen from "./src/screens/LoadingScreen";
 import WelcomeScreen from "./src/screens/WelcomeScreen";
+import AudioUploadRecording from "./src/screens/AudioUploadRecording.js";
+import RealTimeRecording from "./src/screens/RealTimeRecording.js";
+
+
+
 import Recording from "./src/screens/Recording";
 import AudioUploadScreen from "./src/screens/AudioUploadScreen";
 import SummaryScreen from "./src/screens/SummaryScreen";
@@ -41,18 +46,23 @@ const screenOptions = {
 
 function HomeStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="HomeMain"
-        component={Home}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="Recording"
-        component={Recording}
-        options={{ headerShown: false }}
-      />
-    </Stack.Navigator>
+      <Stack.Navigator>
+          <Stack.Screen
+              name="HomeMain"
+              component={Home}
+              options={{ headerShown: false }}
+          />
+          <Stack.Screen
+              name="AudioUploadRecording"
+              component={AudioUploadRecording}
+              options={{ headerShown: false }}
+          />
+          <Stack.Screen
+              name="RealTimeRecording"
+              component={RealTimeRecording}
+              options={{ headerShown: false }}
+          />
+      </Stack.Navigator>
   );
 }
 
