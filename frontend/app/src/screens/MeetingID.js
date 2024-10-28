@@ -37,17 +37,6 @@ const MeetingID = ({ navigation }) => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialIcons name="arrow-back" size={24} color="#2D3436" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Join Meeting</Text>
-          <View style={styles.placeholderButton} />
-        </View>
-
         <View style={styles.content}>
           <Text style={styles.title}>Enter Meeting Code</Text>
           <View style={styles.inputContainer}>
@@ -95,26 +84,6 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#2D3436",
-  },
-  placeholderButton: {
-    width: 40,
   },
   content: {
     flex: 1,

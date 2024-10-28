@@ -20,6 +20,10 @@ import RealTimeRecording from "./src/screens/RealTimeRecording.js";
 
 
 
+import Recording from "./src/screens/Recording";
+import AudioUploadScreen from "./src/screens/AudioUploadScreen";
+import SummaryScreen from "./src/screens/SummaryScreen";
+import MeetingDetailScreen from "./src/screens/MeetingDetailScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -129,6 +133,22 @@ function MainStack() {
       <Stack.Screen
         name="MainTabs"
         component={MainTabs}
+        options={{ headerShown: false }}
+      />
+      {/* 새로 추가하는 스크린들 */}
+      <Stack.Screen
+        name="AudioUpload"
+        component={AudioUploadScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Summary"
+        component={SummaryScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MeetingDetail"
+        component={MeetingDetailScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

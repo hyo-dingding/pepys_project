@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,19 +7,49 @@ import {
   SafeAreaView,
   ScrollView,
   Dimensions,
-  Image,
 } from "react-native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MaterialIcons } from "@expo/vector-icons";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FileUploadScreen from "../screens/FileUploadScreen";
 import MeetingID from "../screens/MeetingID";
 import AudioUploadScreen from "../screens/AudioUploadScreen";
+import Calendar from "../navigation/Calendar";
+import Profile from "../navigation/Profile";
 
 const Stack = createNativeStackNavigator();
 const { width } = Dimensions.get("window");
 
 const HomeScreen = ({ navigation }) => {
   const [activeButton, setActiveButton] = useState(null);
+  const [weekEvents, setWeekEvents] = useState([]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      updateWeekEvents();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  const updateWeekEvents = () => {
+    const today = new Date();
+    const events = [];
+
+    // 오늘부터 7일간의 이벤트 가져오기
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+      if (global.calendarEvents && global.calendarEvents[dateKey]) {
+        events.push({
+          date: date,
+          events: global.calendarEvents[dateKey],
+        });
+      }
+    }
+    setWeekEvents(events);
+  };
 
   const handleButtonPress = (action) => {
     setActiveButton(action);
@@ -37,7 +67,10 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.logoContainer}>
         <Text style={styles.appName}>Pepys</Text>
       </View>
-      <TouchableOpacity style={styles.profileButton}>
+      <TouchableOpacity
+        style={styles.profileButton}
+        onPress={() => navigation.navigate("Profile")}
+      >
         <MaterialIcons name="account-circle" size={32} color="#6A9C89" />
       </TouchableOpacity>
     </View>
@@ -102,22 +135,62 @@ const HomeScreen = ({ navigation }) => {
     </View>
   );
 
-  const renderToDoList = () => (
-    <View style={styles.toDoContainer}>
-      <Text style={styles.sectionTitle}>To-Do List</Text>
-      <View style={styles.toDoItem}>
-        <Text style={styles.toDoText}>
-          Prepare presentation for next meeting
-        </Text>
-        <TouchableOpacity>
-          <MaterialIcons name="check-circle" size={24} color="#6A9C89" />
+  const renderMiniCalendar = () => (
+    <View style={styles.calendarContainer}>
+      <View style={styles.calendarHeader}>
+        <Text style={styles.sectionTitle}>Upcoming Events</Text>
+        <TouchableOpacity
+          style={styles.viewMoreButton}
+          onPress={() => navigation.navigate("CalendarTab")}
+        >
+          <Text style={styles.viewMoreText}>View Calendar</Text>
+          <MaterialIcons name="chevron-right" size={20} color="#6A9C89" />
         </TouchableOpacity>
       </View>
-      <View style={styles.toDoItem}>
-        <Text style={styles.toDoText}>Review meeting notes</Text>
-        <TouchableOpacity>
-          <MaterialIcons name="check-circle" size={24} color="#6A9C89" />
-        </TouchableOpacity>
+
+      <View style={styles.weekEventsContainer}>
+        {weekEvents.length > 0 ? (
+          <ScrollView style={styles.eventsWrapper}>
+            {weekEvents.map((dayEvents, index) => (
+              <View key={index} style={styles.dayEventsContainer}>
+                <View style={styles.dateHeader}>
+                  <Text style={styles.dateText}>
+                    {dayEvents.date.toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </Text>
+                </View>
+                {dayEvents.events.map((event, eventIndex) => (
+                  <View key={eventIndex} style={styles.eventItem}>
+                    <View style={styles.eventTimeContainer}>
+                      <MaterialIcons
+                        name="access-time"
+                        size={14}
+                        color="#666666"
+                      />
+                      <Text style={styles.eventTime}>{event.time}</Text>
+                    </View>
+                    <Text style={styles.eventTitle}>{event.title}</Text>
+                    {event.description && (
+                      <Text style={styles.eventDescription} numberOfLines={1}>
+                        {event.description}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyEventsContainer}>
+            <MaterialIcons name="event-available" size={40} color="#E0E0E0" />
+            <Text style={styles.emptyEventsText}>
+              No upcoming events this week
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -128,36 +201,13 @@ const HomeScreen = ({ navigation }) => {
         {renderHeader()}
         {renderMainActions()}
         {renderRecentMeetings()}
-        {renderToDoList()}
+        {renderMiniCalendar()}
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  toDoContainer: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#2D3436",
-    marginBottom: 12,
-  },
-  toDoItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#f8f9fa",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-  toDoText: {
-    fontSize: 16,
-    color: "#2D3436",
-  },
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
@@ -175,42 +225,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  logo: {
-    width: 56, // 로고 크기
-    height: 56, // 로고 크기
-    marginBottom: -12, // 로고 위치를 아래로 이동
-  },
   appName: {
-    fontSize: 26, // 텍스트 크기
+    fontSize: 26,
     fontWeight: "600",
     color: "#2D3436",
   },
   profileButton: {
     padding: 4,
-  },
-  recentContainer: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#2D3436",
-  },
-  emptyContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: "#636E72",
   },
   mainActionsContainer: {
     padding: 20,
@@ -250,6 +271,111 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#636E72",
   },
+  recentContainer: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#2D3436",
+  },
+  emptyContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#636E72",
+  },
+  calendarContainer: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  calendarHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  viewMoreButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8F9FA",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  viewMoreText: {
+    fontSize: 14,
+    color: "#6A9C89",
+    marginRight: 4,
+    fontWeight: "500",
+  },
+  dayEventsContainer: {
+    marginBottom: 16,
+  },
+  dateHeader: {
+    paddingVertical: 8,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2D3436",
+  },
+  eventsWrapper: {
+    maxHeight: 300, // 스크롤 가능 영역 설정
+  },
+  eventItem: {
+    marginBottom: 12,
+    padding: 10, // 패딩을 줄여 카드 높이 축소
+    backgroundColor: "#F8F9FA",
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: "#6A9C89",
+  },
+  eventTimeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2, // 간격 축소
+  },
+  eventTime: {
+    fontSize: 12, // 텍스트 크기 축소
+    color: "#666666",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  eventTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2D3436",
+  },
+  eventDescription: {
+    fontSize: 12,
+    color: "#636E72",
+  },
+  emptyEventsContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  emptyEventsText: {
+    fontSize: 14,
+    color: "#636E72",
+    marginTop: 12,
+    marginBottom: 16,
+  },
 });
 
 const Home = () => {
@@ -273,6 +399,16 @@ const Home = () => {
       <Stack.Screen
         name="AudioUpload"
         component={AudioUploadScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Calendar"
+        component={Calendar}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Profile"
+        component={Profile}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
