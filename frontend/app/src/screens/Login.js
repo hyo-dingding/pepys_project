@@ -27,7 +27,10 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
 
   const handleForgotPassword = async () => {
     try {
-      const response = await axios.post("/forgot-password/", { email });
+      const response = await axios.post(
+        "https://5ada-59-31-88-239.ngrok-free.app/forgot-password/",
+        { email }
+      );
 
       if (response.status === 200) {
         setIsEmailSent(true);
@@ -168,7 +171,7 @@ const LoginModal = ({ visible, onClose, navigation }) => {
   const handleLogin = async () => {
     try {
       const response = await axios.post(
-        "/auth/login", // 정확한 ngrok URL과 경로 사용
+        "https://5ada-59-31-88-239.ngrok-free.app/auth/login", // 정확한 ngrok URL과 경로 사용
         {
           email, // 사용자 입력값
           password, // 사용자 입력값

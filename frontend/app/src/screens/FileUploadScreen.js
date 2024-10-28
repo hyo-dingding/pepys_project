@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  Platform,
-  Alert,
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    Platform,
+    Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -35,12 +35,12 @@ const FileUploadScreen = () => {
     }
   };
 
-  const handleUpload = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        multiple: true,
-      });
+    const handleUpload = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: "*/*",
+                multiple: true,
+            });
 
       if (result.type === "success") {
         const fileType = result.name.split(".").pop();
@@ -72,17 +72,17 @@ const FileUploadScreen = () => {
 
   const handleSave = () => {
     const roomCode = generateRoomCode();
-    navigation.navigate("Recording", {
-      isHost: true,
-      roomCode: roomCode, // 생성된 룸 코드 전달
+    navigation.navigate("RealTimeRecording", {
+        isHost: true,
+        roomCode: roomCode, // 생성된 룸 코드 전달
     });
   };
 
   const handleSkip = () => {
     const roomCode = generateRoomCode();
-    navigation.navigate("Recording", {
-      isHost: true,
-      roomCode: roomCode, // 생성된 룸 코드 전달
+    navigation.navigate("RealTimeRecording", {
+        isHost: true,
+        roomCode: roomCode, // 생성된 룸 코드 전달
     });
   };
 

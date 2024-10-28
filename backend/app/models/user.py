@@ -15,7 +15,7 @@ class UpdateUser(BaseModel):
     email: str
     name: str
     nationality: str
-    job_title: str
+    work_title: str
 
 
 # 로그인 시 요청되는 정보 (이메일과 비밀번호)

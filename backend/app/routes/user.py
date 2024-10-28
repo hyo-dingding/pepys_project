@@ -113,9 +113,16 @@ async def update_users(id, user: UpdateUser):
     return userEntity(conn.rag_db.user.find_one({"_id":ObjectId(id)}))
    
 # 사용자 계정 삭제
-@user.delete("/user/{id}")
-async def delete_users(id):
-    return userEntity(conn.rag_db.user.find_one_and_delete({"_id":ObjectId(id)}))
+@user.delete("/user/{email}")
+async def delete_user_by_email(email: str):
+    deleted_user = conn.rag_db.user.find_one_and_delete({"email": email})
+    if deleted_user:
+        return {"msg": "User deleted successfully"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
 # 1. 이메일 주소 입력 -> 랜덤 비밀번호 전송
 @user.post("/forgot-password/")

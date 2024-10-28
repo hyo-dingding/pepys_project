@@ -1,34 +1,47 @@
 {
-  "expo": {
-    "name": "app",
-    "slug": "app",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./src/assets/image/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./src/assets/image/logo.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
+    "expo": {
+        "name": "app",
+        "slug": "app",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./src/assets/image/icon.png",
+        "userInterfaceStyle": "light",
+        "splash": {
+            "image": "./src/assets/image/logo.png",
+            "resizeMode": "cover",
+            "backgroundColor": "#ffffff"
+        },
+        "ios": {
+            "supportsTablet": true,
+            "NSAppTransportSecurity": {
+                "NSAllowsArbitraryLoads": true
+            },
+            "infoPlist": {
+                "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload audio files.",
+                "NSMicrophoneUsageDescription": "This app needs access to the microphone to record audio.",
+                "NSDocumentsFolderUsageDescription": "This app needs access to your documents folder to save and upload files."
+            }
+        }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./src/assets/image/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "permissions": [
+            "READ_EXTERNAL_STORAGE",
+            "WRITE_EXTERNAL_STORAGE",
+            "RECORD_AUDIO"
+        ],
+        "adaptiveIcon": {
+            "foregroundImage": "./src/assets/image/adaptive-icon.png",
+            "backgroundColor": "#ffffff"
+        }
     },
     "web": {
-      "favicon": "./src/assets/image/favicon.png"
+        "favicon": "./src/assets/image/favicon.png"
     },
     "extra": {
-      "eas": {
-        "projectId": "6799ec86-9fbf-4758-9088-4e47741668fb"
-      }
+        "eas": {
+            "projectId": "6799ec86-9fbf-4758-9088-4e47741668fb"
+        }
     },
     "plugins": ["react-native-reanimated/plugin"],
     "owner": "HyoJinPark"
-  }
 }

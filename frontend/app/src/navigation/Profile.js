@@ -43,7 +43,10 @@ const Profile = () => {
       }
 
       // 로그아웃 후 WelcomeScreen으로 이동
-      navigation.navigate("Welcome");
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Welcome" }],
+      });
     } catch (error) {
       console.error("Error during logout:", error);
     }
