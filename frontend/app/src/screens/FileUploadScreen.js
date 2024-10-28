@@ -68,17 +68,17 @@ const FileUploadScreen = () => {
 
   const handleSave = () => {
     const roomCode = generateRoomCode();
-    navigation.navigate("Recording", {
-      isHost: true,
-      roomCode: roomCode, // 생성된 룸 코드 전달
+    navigation.navigate("RealTimeRecording", {
+        isHost: true,
+        roomCode: roomCode, // 생성된 룸 코드 전달
     });
   };
 
   const handleSkip = () => {
     const roomCode = generateRoomCode();
-    navigation.navigate("Recording", {
-      isHost: true,
-      roomCode: roomCode, // 생성된 룸 코드 전달
+    navigation.navigate("RealTimeRecording", {
+        isHost: true,
+        roomCode: roomCode, // 생성된 룸 코드 전달
     });
   };
 

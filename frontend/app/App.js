@@ -15,7 +15,11 @@ import Login from "./src/screens/Login";
 import SignUp from "./src/screens/Signup";
 import LoadingScreen from "./src/screens/LoadingScreen";
 import WelcomeScreen from "./src/screens/WelcomeScreen";
-import Recording from "./src/screens/recording";
+import AudioUploadRecording from "./src/screens/AudioUploadRecording.js";
+import RealTimeRecording from "./src/screens/RealTimeRecording.js";
+
+
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -38,18 +42,23 @@ const screenOptions = {
 
 function HomeStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="HomeMain"
-        component={Home}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="Recording"
-        component={Recording}
-        options={{ headerShown: false }}
-      />
-    </Stack.Navigator>
+      <Stack.Navigator>
+          <Stack.Screen
+              name="HomeMain"
+              component={Home}
+              options={{ headerShown: false }}
+          />
+          <Stack.Screen
+              name="AudioUploadRecording"
+              component={AudioUploadRecording}
+              options={{ headerShown: false }}
+          />
+          <Stack.Screen
+              name="RealTimeRecording"
+              component={RealTimeRecording}
+              options={{ headerShown: false }}
+          />
+      </Stack.Navigator>
   );
 }
 
