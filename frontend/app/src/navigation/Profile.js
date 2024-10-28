@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { launchImageLibrary } from "react-native-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
 
 const Profile = () => {
   const [profileData, setProfileData] = useState({
@@ -24,6 +26,28 @@ const Profile = () => {
     meetings: "0",
     interests: [],
   });
+  // 로그아웃 함수
+  const navigation = useNavigation();
+
+  const handleSignOut = async () => {
+    try {
+      // AsyncStorage에서 토큰 삭제
+      await AsyncStorage.removeItem("access_token");
+
+      // 삭제 후 토큰 확인
+      const token = await AsyncStorage.getItem("access_token");
+      if (!token) {
+        console.log("Token successfully deleted"); // 토큰이 없으면 성공적으로 삭제된 것
+      } else {
+        console.log("Token still exists:", token); // 토큰이 남아있다면 삭제 실패
+      }
+
+      // 로그아웃 후 WelcomeScreen으로 이동
+      navigation.navigate("Welcome");
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
+  };
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -152,7 +176,10 @@ const Profile = () => {
             <Text style={styles.buttonText}>Edit Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.editButton, styles.signOutButton]}>
+          <TouchableOpacity
+            style={[styles.editButton, styles.signOutButton]}
+            onPress={handleSignOut}
+          >
             <MaterialIcons name="logout" size={20} color="#FFF" />
             <Text style={styles.buttonText}>Sign Out</Text>
           </TouchableOpacity>

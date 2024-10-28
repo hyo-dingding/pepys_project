@@ -15,7 +15,7 @@ import Login from "./src/screens/Login";
 import SignUp from "./src/screens/Signup";
 import LoadingScreen from "./src/screens/LoadingScreen";
 import WelcomeScreen from "./src/screens/WelcomeScreen";
-import Recording from "./src/screens/Recording";
+import Recording from "./src/screens/Recording.js";
 import AudioUploadScreen from "./src/screens/AudioUploadScreen";
 import SummaryScreen from "./src/screens/SummaryScreen";
 import MeetingDetailScreen from "./src/screens/MeetingDetailScreen";
