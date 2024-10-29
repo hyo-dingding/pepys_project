@@ -66,12 +66,13 @@ async def create_users(user: User):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    # 비밀번호 유효성 검사 (영어 소문자와 숫자 포함, 6~8자리)
+    # 비밀번호 유효성 검사 (8자리 이상, 대문자, 소문자, 숫자, 특수문자 포함)
+    
     if not re.match("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?\":{}|<>])[A-Za-z0-9!@#$%^&*(),.?\":{}|<>]{8,}$", user.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.")
-
+            detail="Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters."
+        )
     # 비밀번호와 비밀번호 확인 일치 여부 확인
     if user.password != user.password_retype:
         raise HTTPException(
@@ -112,12 +113,19 @@ async def update_users(id, user: UpdateUser):
     return userEntity(conn.rag_db.user.find_one({"_id":ObjectId(id)}))
    
 # 사용자 계정 삭제
-@user.delete("/user/{id}")
-async def delete_users(id):
-    return userEntity(conn.rag_db.user.find_one_and_delete({"_id":ObjectId(id)}))
+@user.delete("/user/{email}")
+async def delete_user_by_email(email: str):
+    deleted_user = conn.rag_db.user.find_one_and_delete({"email": email})
+    if deleted_user:
+        return {"msg": "User deleted successfully"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
 # 1. 이메일 주소 입력 -> 랜덤 비밀번호 전송
-@user.post("/forgot-password/")
+@user.post("/forgot-password")
 async def send_reset_code(email_request: EmailRequest):
     email = email_request.email
 
@@ -155,7 +163,7 @@ async def send_reset_code(email_request: EmailRequest):
     return {"message": "비밀번호 재설정 코드가 이메일로 전송되었습니다."}
 
 # 2. 랜덤 코드 입력 -> 비밀번호 재설정
-@user.post("/reset-password/")
+@user.post("/reset-password")
 async def reset_password(request: ResetPasswordRequest):
     email, random_code, new_password = request.email, request.random_code, request.new_password
 
@@ -167,7 +175,8 @@ async def reset_password(request: ResetPasswordRequest):
     if not re.match("^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?\":{}|<>])[A-Za-z0-9!@#$%^&*(),.?\":{}|<>]{8,}$", new_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="비밀번호는 8자리 이상이며 대문자, 소문자, 숫자, 특수문자를 포함해야 합니다.")
+            detail="비밀번호는 8자리 이상이며 대문자, 소문자, 숫자, 특수문자를 포함해야 합니다."
+        )
     
     # 비밀번호 해싱
     hashed_password = get_password_hash(new_password)

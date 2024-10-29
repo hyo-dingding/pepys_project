@@ -55,6 +55,31 @@ const Profile = () => {
     meetings: "0",
     interests: [],
   });
+  // 로그아웃 함수
+  const navigation = useNavigation();
+
+  const handleSignOut = async () => {
+    try {
+      // AsyncStorage에서 토큰 삭제
+      await AsyncStorage.removeItem("access_token");
+
+      // 삭제 후 토큰 확인
+      const token = await AsyncStorage.getItem("access_token");
+      if (!token) {
+        console.log("Token successfully deleted"); // 토큰이 없으면 성공적으로 삭제된 것
+      } else {
+        console.log("Token still exists:", token); // 토큰이 남아있다면 삭제 실패
+      }
+
+      // 로그아웃 후 WelcomeScreen으로 이동
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Welcome" }],
+      });
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
+  };
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -149,44 +174,6 @@ const Profile = () => {
       if (blob) {
         blob = null;
       }
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      // 로그아웃 API 호출 - URL을 실제 백엔드 주소로 변경해야 합니다
-      await axios.post(
-        `${NGROK_URL}/logout`
-        // "https://cdec-218-148-117-157.ngrok-free.app/auth/logout"
-      );
-
-      console.log(response.data);
-
-      // 저장된 토큰 제거
-      await AsyncStorage.removeItem("access_token");
-
-      // 로그아웃 성공 알림
-      Alert.alert(
-        "Sign Out Success",
-        "You have been successfully signed out.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // OK 버튼 클릭 시 로그인 페이지로 이동
-              navigation.reset({
-                index: 0,
-                routes: [{ name: "Login" }],
-              });
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      console.error("Logout error:", error);
-      Alert.alert("Sign Out Failed", "An error occurred while signing out.", [
-        { text: "OK" },
-      ]);
     }
   };
 

@@ -27,13 +27,9 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
 
   const handleForgotPassword = async () => {
     try {
-      const response = await axios.post(
-        `${NGROK_URL}/forgot-password/`,
-        // "https://cdec-218-148-117-157.ngrok-free.app/forgot-password/",
-        {
-          email,
-        }
-      );
+      const response = await axios.post(`${NGROK_URL}/forgot-password`, {
+        email,
+      });
 
       if (response.status === 200) {
         setIsEmailSent(true);
@@ -174,8 +170,7 @@ const LoginModal = ({ visible, onClose, navigation }) => {
   const handleLogin = async () => {
     try {
       const response = await axios.post(
-        // `${NGROK_URL}/auth/login`,
-        "https://128d-218-148-117-157.ngrok-free.app/auth/login", // 정확한 ngrok URL과 경로 사용
+        `${NGROK_URL}/auth/login`, // 정확한 ngrok URL과 경로 사용
         {
           email, // 사용자 입력값
           password, // 사용자 입력값
