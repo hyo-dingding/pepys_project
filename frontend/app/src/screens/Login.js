@@ -27,7 +27,7 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
 
   const handleForgotPassword = async () => {
     try {
-      const response = await axios.post("${NGROK_URL}/forgot-password/", {
+      const response = await axios.post(`${NGROK_URL}/forgot-password/`, {
         email,
       });
 
@@ -170,7 +170,7 @@ const LoginModal = ({ visible, onClose, navigation }) => {
   const handleLogin = async () => {
     try {
       const response = await axios.post(
-        "${NGROK_URL}/auth/login", // 정확한 ngrok URL과 경로 사용
+        `${NGROK_URL}/auth/login`, // 정확한 ngrok URL과 경로 사용
         {
           email, // 사용자 입력값
           password, // 사용자 입력값
