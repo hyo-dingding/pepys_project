@@ -12,21 +12,93 @@ import {
   Dimensions,
   Animated,
   PanResponder,
+  Alert,
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 
 const { height } = Dimensions.get("window");
 
-const ForgotPasswordModal = ({ visible, onClose }) => {
-  const [email, setEmail] = useState("");
-  const [isEmailSent, setIsEmailSent] = useState(false);
+// 비밀번호 재설정 단계를 정의하는 상수
+const RESET_STEPS = {
+  EMAIL: "email", // 이메일 입력 단계
+  VERIFY: "verify", // 인증코드 확인 단계
+  RESET: "reset", // 새 비밀번호 설정 단계
+};
 
-  const handleSubmit = () => {
-    setIsEmailSent(true);
-    setTimeout(() => {
-      setIsEmailSent(false);
-      onClose();
-    }, 3000);
+const ForgotPasswordModal = ({ visible, onClose }) => {
+  // 상태 관리
+  const [currentStep, setCurrentStep] = useState(RESET_STEPS.EMAIL);
+  const [email, setEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [timer, setTimer] = useState(180); // 3분 타이머
+
+  // 인증코드 입력을 위한 refs 배열
+  const codeInputs = Array(6)
+    .fill(0)
+    .map(() => useRef(null));
+
+  // 타이머 관리
+  React.useEffect(() => {
+    let interval;
+    if (currentStep === RESET_STEPS.VERIFY && timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prevTimer) => prevTimer - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [currentStep, timer]);
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
+
+  const handleEmailSubmit = () => {
+    if (!email) {
+      Alert.alert("Error", "Please enter your email.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert("Error", "Please enter a valid email address.");
+      return;
+    }
+    setCurrentStep(RESET_STEPS.VERIFY);
+    setTimer(180);
+  };
+
+  const handleVerifyCode = () => {
+    if (verificationCode.length !== 6) {
+      Alert.alert("Error", "Please enter 6-digit verification code.");
+      return;
+    }
+    setCurrentStep(RESET_STEPS.RESET);
+  };
+
+  const handleResetPassword = () => {
+    if (!newPassword || !confirmPassword) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters.");
+      return;
+    }
+    Alert.alert("Success", "Password has been successfully changed.", [
+      { text: "OK", onPress: onClose },
+    ]);
+  };
+
+  const handleResendCode = () => {
+    setTimer(180);
+    Alert.alert("Notice", "Verification code has been resent.");
   };
 
   return (
@@ -51,7 +123,7 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
                   <MaterialIcons name="close" size={24} color="#666" />
                 </TouchableOpacity>
 
-                {!isEmailSent ? (
+                {currentStep === RESET_STEPS.EMAIL && (
                   <>
                     <View style={styles.forgotPasswordHeader}>
                       <MaterialIcons
@@ -63,8 +135,8 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
                         Forgot Password?
                       </Text>
                       <Text style={styles.forgotPasswordSubtitle}>
-                        Enter your email address and we'll send you instructions
-                        to reset your password.
+                        Enter your email address and we'll send you verification
+                        code.
                       </Text>
                     </View>
 
@@ -72,8 +144,8 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
                       <MaterialIcons name="email" size={20} color="#6A9C89" />
                       <TextInput
                         style={styles.forgotPasswordInput}
-                        placeholder="Enter your email"
-                        placeholderTextColor="#CD5C08"
+                        placeholder="Email Address"
+                        placeholderTextColor="#999"
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -83,25 +155,123 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
 
                     <TouchableOpacity
                       style={styles.forgotPasswordButton}
-                      onPress={handleSubmit}
+                      onPress={handleEmailSubmit}
                     >
                       <Text style={styles.forgotPasswordButtonText}>
-                        Send Reset Link
+                        Send Code
                       </Text>
                     </TouchableOpacity>
                   </>
-                ) : (
-                  <View style={styles.successMessage}>
-                    <MaterialIcons
-                      name="check-circle"
-                      size={50}
-                      color="#6A9C89"
-                    />
-                    <Text style={styles.successTitle}>Email Sent!</Text>
-                    <Text style={styles.successText}>
-                      Please check your email for password reset instructions.
-                    </Text>
-                  </View>
+                )}
+
+                {currentStep === RESET_STEPS.VERIFY && (
+                  <>
+                    <View style={styles.forgotPasswordHeader}>
+                      <MaterialIcons
+                        name="verified-user"
+                        size={50}
+                        color="#6A9C89"
+                      />
+                      <Text style={styles.forgotPasswordTitle}>Enter Code</Text>
+                      <Text style={styles.forgotPasswordSubtitle}>
+                        Please enter the 6-digit verification code sent to your
+                        email.
+                      </Text>
+                      <Text
+                        style={[styles.forgotPasswordSubtitle, styles.timer]}
+                      >
+                        Time Remaining: {formatTime(timer)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.codeInputContainer}>
+                      {Array(6)
+                        .fill(0)
+                        .map((_, index) => (
+                          <TextInput
+                            key={index}
+                            ref={codeInputs[index]}
+                            style={styles.codeInput}
+                            maxLength={1}
+                            keyboardType="number-pad"
+                            onChangeText={(value) => {
+                              const newCode = verificationCode.split("");
+                              newCode[index] = value;
+                              setVerificationCode(newCode.join(""));
+
+                              if (value && index < 5) {
+                                codeInputs[index + 1].current.focus();
+                              }
+                            }}
+                            value={verificationCode[index] || ""}
+                          />
+                        ))}
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.resendButton}
+                      onPress={handleResendCode}
+                    >
+                      <Text style={styles.forgotPasswordButtonText}>
+                        Resend Code
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.forgotPasswordButton}
+                      onPress={handleVerifyCode}
+                    >
+                      <Text style={styles.forgotPasswordButtonText}>
+                        Verify
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+                {currentStep === RESET_STEPS.RESET && (
+                  <>
+                    <View style={styles.forgotPasswordHeader}>
+                      <MaterialIcons name="lock" size={50} color="#6A9C89" />
+                      <Text style={styles.forgotPasswordTitle}>
+                        Reset Password
+                      </Text>
+                      <Text style={styles.forgotPasswordSubtitle}>
+                        Please enter your new password.
+                      </Text>
+                    </View>
+
+                    <View style={styles.forgotPasswordInputWrapper}>
+                      <MaterialIcons name="lock" size={20} color="#6A9C89" />
+                      <TextInput
+                        style={styles.forgotPasswordInput}
+                        placeholder="New Password"
+                        placeholderTextColor="#999"
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        secureTextEntry
+                      />
+                    </View>
+
+                    <View style={styles.forgotPasswordInputWrapper}>
+                      <MaterialIcons name="lock" size={20} color="#6A9C89" />
+                      <TextInput
+                        style={styles.forgotPasswordInput}
+                        placeholder="Confirm Password"
+                        placeholderTextColor="#999"
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry
+                      />
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.forgotPasswordButton}
+                      onPress={handleResetPassword}
+                    >
+                      <Text style={styles.forgotPasswordButtonText}>
+                        Change Password
+                      </Text>
+                    </TouchableOpacity>
+                  </>
                 )}
               </View>
             </TouchableWithoutFeedback>
@@ -111,7 +281,6 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
     </Modal>
   );
 };
-
 const LoginModal = ({ visible, onClose, navigation }) => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const panY = useRef(new Animated.Value(0)).current;
@@ -242,6 +411,20 @@ const LoginModal = ({ visible, onClose, navigation }) => {
                       <FontAwesome5 name="google" size={20} color="#444" />
                       <Text style={styles.googleButtonText}>
                         Sign in with Google
+                      </Text>
+                    </TouchableOpacity>
+                    {/* 애플 로그인 버튼 수정 */}
+                    <TouchableOpacity
+                      style={[styles.googleButton, styles.appleButton]}
+                    >
+                      <FontAwesome5 name="apple" size={20} color="#666" />
+                      <Text
+                        style={[
+                          styles.googleButtonText,
+                          styles.appleButtonText,
+                        ]}
+                      >
+                        Sign in with Apple
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -478,6 +661,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     textAlign: "center",
+  },
+  codeInputContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginVertical: 20,
+    paddingHorizontal: 20,
+  },
+  codeInput: {
+    width: 40,
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+    borderRadius: 8,
+    textAlign: "center",
+    fontSize: 18,
+    backgroundColor: "#f8f9fa",
+  },
+  timer: {
+    color: "#CD5C08",
+    marginTop: 10,
+  },
+  resendButton: {
+    marginVertical: 15,
+  },
+  appleButton: {
+    marginTop: 12,
+    backgroundColor: "#fff",
+    borderColor: "#e9ecef",
+  },
+  appleButtonText: {
+    color: "#444",
   },
 });
 

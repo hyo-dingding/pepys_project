@@ -9,6 +9,7 @@ import {
   ScrollView,
   Platform,
   StatusBar,
+  Alert, // 추가
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { launchImageLibrary } from "react-native-image-picker";
@@ -44,6 +45,52 @@ const Profile = () => {
     } catch (error) {
       console.log("Error selecting photo:", error);
     }
+  };
+  // 계정 삭제 확인 함수 추가
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: () => {
+            // 두 번째 확인 단계
+            Alert.alert(
+              "Final Confirmation",
+              "Please type 'DELETE' to confirm account deletion",
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+                {
+                  text: "Confirm",
+                  onPress: async () => {
+                    try {
+                      // TODO: 계정 삭제 API 연동
+                      console.log("Account deleted");
+                      // 로그아웃 처리나 로그인 화면으로 이동 로직 추가
+                    } catch (error) {
+                      Alert.alert(
+                        "Error",
+                        "Failed to delete account. Please try again."
+                      );
+                    }
+                  },
+                  style: "destructive",
+                },
+              ]
+            );
+          },
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   return (
@@ -155,6 +202,14 @@ const Profile = () => {
           <TouchableOpacity style={[styles.editButton, styles.signOutButton]}>
             <MaterialIcons name="logout" size={20} color="#FFF" />
             <Text style={styles.buttonText}>Sign Out</Text>
+          </TouchableOpacity>
+          {/* 계정 삭제 버튼 추가 */}
+          <TouchableOpacity
+            style={[styles.editButton, styles.deleteButton]}
+            onPress={handleDeleteAccount}
+          >
+            <MaterialIcons name="delete-forever" size={20} color="#FFF" />
+            <Text style={styles.buttonText}>Delete Account</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -343,6 +398,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+  },
+  deleteButton: {
+    backgroundColor: "#DC3545", // 위험을 나타내는 빨간색
+    marginTop: 8, // 다른 버튼들과 약간의 간격
   },
 });
 
