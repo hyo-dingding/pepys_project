@@ -363,6 +363,9 @@ render.experimental.xml
 # Google Services (e.g. APIs or Firebase)
 google-services.json
 
+# Google Services ios (e.g. APIs or Firebase)
+GoogleService-Info.plist
+
 # Android Profiling
 *.hprof
 

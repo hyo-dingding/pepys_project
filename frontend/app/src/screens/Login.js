@@ -112,7 +112,6 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
                     <TouchableOpacity
                       style={styles.forgotPasswordButton}
                       onPress={handleForgotPassword}
-
                     >
                       <Text style={styles.forgotPasswordButtonText}>
                         Send Code
@@ -289,6 +288,7 @@ const LoginModal = ({ visible, onClose, navigation }) => {
         console.log("Login successful, token:", access_token);
         // 토큰저장
         await AsyncStorage.setItem("access_token", access_token);
+        await AsyncStorage.setItem("user_email", email);
 
         // 로그인 성공 처리, 토큰 저장 등
         navigation.navigate("MainTabs", { screen: "RoomSetup" });
