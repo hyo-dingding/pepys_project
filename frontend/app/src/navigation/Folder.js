@@ -9,6 +9,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
@@ -74,21 +75,6 @@ const meetingsData = {
   ],
 };
 
-// 헤더 컴포넌트
-const CustomHeader = () => (
-  <View style={styles.headerContainer}>
-    <Text style={styles.headerTitle}>Files</Text>
-    <View style={styles.headerActions}>
-      <TouchableOpacity style={styles.headerButton}>
-        <MaterialIcons name="search" size={24} color="#2D3436" />
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.headerButton}>
-        <MaterialIcons name="filter-list" size={24} color="#2D3436" />
-      </TouchableOpacity>
-    </View>
-  </View>
-);
-
 // 미팅 아이템 컴포넌트
 const MeetingItem = ({ meeting, onPress }) => (
   <TouchableOpacity style={styles.meetingCard} onPress={onPress}>
@@ -144,7 +130,6 @@ export default function Folder() {
   return (
     <View style={styles.mainContainer}>
       <StatusBar backgroundColor="white" barStyle="dark-content" />
-      <CustomHeader />
       <Tab.Navigator
         screenOptions={{
           tabBarStyle: styles.tabBar,
@@ -152,6 +137,7 @@ export default function Folder() {
           tabBarActiveTintColor: "#6A9C89",
           tabBarInactiveTintColor: "#666",
           tabBarLabelStyle: styles.tabLabel,
+          headerShown: false, // 헤더 숨기기
         }}
       >
         <Tab.Screen
@@ -173,17 +159,21 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     backgroundColor: "#fff",
+    paddingTop: Platform.OS === "ios" ? 60 : 20,
   },
   container: {
     flex: 1,
     padding: 16,
+    paddingBottom: Platform.OS === "ios" ? 100 : 80, // iOS의 경우 더 큰 하단 패딩
   },
+  // 헤더 스타일 수정 - 상단 여백 조정
   headerContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
+    marginTop: Platform.OS === "ios" ? -40 : 0, // iOS에서 상단 여백 조정
   },
   headerTitle: {
     fontSize: 24,

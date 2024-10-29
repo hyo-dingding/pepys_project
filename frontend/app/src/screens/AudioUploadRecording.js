@@ -210,6 +210,7 @@ const AudioUploadRecording = ({ route }) => {
               ? "Recording in progress"
               : ""}
           </Text>
+
         </View>
       ) : (
         // 참가자 뷰는 그대로 유지
@@ -321,6 +322,7 @@ const AudioUploadRecording = ({ route }) => {
           <MaterialIcons name="language" size={20} color="#6A9C89" />
           <Text style={styles.languageText}>{targetLanguage.name}</Text>
         </TouchableOpacity>
+
       </View>
       {/* 언어 선택 모달 */}
       <Modal visible={isModalVisible} transparent={true} animationType="slide">
@@ -346,6 +348,7 @@ const AudioUploadRecording = ({ route }) => {
                   style={styles.languageItem}
                   onPress={() => selectLanguage(item)}
                 >
+
                   <MaterialIcons
                     name="language"
                     size={24}
@@ -362,6 +365,7 @@ const AudioUploadRecording = ({ route }) => {
               )}
               ItemSeparatorComponent={() => <View style={styles.separator} />}
               keyExtractor={(item) => item.code}
+
             />
           </View>
         </View>
@@ -447,7 +451,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
   },
-
   // 헤더 관련 스타일
   header: {
     padding: 16,

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   ScrollView,
   Platform,
   StatusBar,
-  Alert,
+  Alert, // 추가
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker"; // expo-image-picker로 변경
@@ -19,15 +19,22 @@ import axios from "axios";
 import { NGROK_URL } from "@env";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { initializeApp, getApp } from "firebase/app";
+import {
+  FIREBASE_API_KEY,
+  FIREBASE_AUTH_DOMAIN,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_STORAGE_BUCKET,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_APP_ID,
+} from "@env";
 
-// Firebase 설정 객체 추가
 const firebaseConfig = {
-  apiKey: "AIzaSyCed9IRNe9czcHNrAfpytFEaFWdOrlIz4I",
-  authDomain: "pepysproject-e55ba.firebaseapp.com",
-  projectId: "pepysproject-e55ba",
-  storageBucket: "pepysproject-e55ba.appspot.com", // 실제 스토리지 버킷 URL
-  messagingSenderId: "904750555795",
-  appId: "1:904750555795:android:e742894e0def2484542366",
+  apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
 };
 
 // Firebase 초기화
@@ -55,9 +62,70 @@ const Profile = () => {
     meetings: "0",
     interests: [],
   });
-  // 로그아웃 함수
+
   const navigation = useNavigation();
 
+  // loadProfileData 함수 추가
+  const loadProfileData = async () => {
+    try {
+      // 저장된 토큰 가져오기
+      const token = await AsyncStorage.getItem("access_token");
+      if (!token) {
+        console.log("No token found");
+        navigation.navigate("Welcome");
+        return;
+      }
+
+      // 이메일 가져오기 - AsyncStorage에 저장된 이메일 사용
+      const userEmail = await AsyncStorage.getItem("user_email");
+      if (!userEmail) {
+        console.log("No email found");
+        return;
+      }
+
+      console.log("Fetching user data for email:", userEmail);
+
+      // 사용자 정보 가져오기
+      const response = await axios.get(`${NGROK_URL}/find-id/${userEmail}`);
+      console.log("API Response:", response.data); // 실제 응답 데이터 확인
+
+      const userData = response.data;
+
+      if (!userData || !userData.email) {
+        throw new Error("Invalid user data received");
+      }
+
+      // 프로필 데이터 업데이트
+      setProfileData((prev) => ({
+        ...prev,
+        name: userData.name || "",
+        email: userData.email || "",
+        nationality: userData.nationality || "",
+        work_title: userData.work_title || "",
+        photo: prev.photo || null,
+        bio: prev.bio || "",
+        location: prev.location || "",
+        connections: prev.connections || "0",
+        meetings: prev.meetings || "0",
+        interests: prev.interests || [],
+      }));
+
+      console.log("Profile data loaded:", userData); // 데이터 확인용 로그
+    } catch (error) {
+      console.error("Error loading profile data:", error);
+      if (error.response) {
+        console.error("Error response:", error.response.data);
+      }
+      Alert.alert("Error", "Failed to load profile data. Please try again.");
+    }
+  };
+
+  // useEffect 추가
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  // 로그아웃 함수
   const handleSignOut = async () => {
     try {
       // AsyncStorage에서 토큰 삭제
@@ -175,6 +243,86 @@ const Profile = () => {
         blob = null;
       }
     }
+  };
+
+  // 계정 삭제 확인 함수 추가
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: () => {
+            // 두 번째 확인 단계
+            Alert.alert(
+              "Final Confirmation",
+              "Please type 'DELETE' to confirm account deletion",
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+                {
+                  text: "Confirm",
+                  onPress: async () => {
+                    try {
+                      // 저장된 이메일 가져오기
+                      const userEmail = profileData.email;
+
+                      if (!userEmail) {
+                        Alert.alert("Error", "User email not found");
+                        return;
+                      }
+
+                      // 계정 삭제 API 호출
+                      const response = await axios.delete(
+                        `${NGROK_URL}/user/${userEmail}`
+                      );
+
+                      if (response.data.msg === "User deleted successfully") {
+                        // 성공적으로 삭제된 경우
+                        await AsyncStorage.removeItem("access_token"); // 토큰 삭제
+
+                        Alert.alert(
+                          "Success",
+                          "Your account has been successfully deleted",
+                          [
+                            {
+                              text: "OK",
+                              onPress: () => {
+                                // Welcome 화면으로 이동
+                                navigation.reset({
+                                  index: 0,
+                                  routes: [{ name: "Welcome" }],
+                                });
+                              },
+                            },
+                          ]
+                        );
+                      }
+                    } catch (error) {
+                      console.error("Delete account error:", error);
+                      Alert.alert(
+                        "Error",
+                        error.response?.data?.detail ||
+                          "Failed to delete account. Please try again."
+                      );
+                    }
+                  },
+                  style: "destructive",
+                },
+              ]
+            );
+          },
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   return (
@@ -298,6 +446,14 @@ const Profile = () => {
           >
             <MaterialIcons name="logout" size={20} color="#FFF" />
             <Text style={styles.buttonText}>Sign Out</Text>
+          </TouchableOpacity>
+          {/* 계정 삭제 버튼 추가 */}
+          <TouchableOpacity
+            style={[styles.editButton, styles.deleteButton]}
+            onPress={handleDeleteAccount}
+          >
+            <MaterialIcons name="delete-forever" size={20} color="#FFF" />
+            <Text style={styles.buttonText}>Delete Account</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -486,6 +642,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+  },
+  deleteButton: {
+    backgroundColor: "#DC3545", // 위험을 나타내는 빨간색
+    marginTop: 8, // 다른 버튼들과 약간의 간격
   },
 });
 

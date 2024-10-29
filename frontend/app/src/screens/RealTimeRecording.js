@@ -11,6 +11,7 @@ import {
   Clipboard,
   Dimensions,
   Animated,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -118,17 +119,15 @@ const RealTimeRecording = ({ route }) => {
       }
     };
 
+    // 컴포넌트 마운트 시 WebSocket 연결 시도
     initializeWebSocket();
 
     return () => {
-      if (timeIntervalRef.current) {
-        clearInterval(timeIntervalRef.current);
-      }
       if (ws.current) {
         ws.current.close();
       }
     };
-  }, []);
+  }, []); // 의존성 배열 비우기
 
   // 녹음 타이머와 애니메이션을 위한 useEffect
   useEffect(() => {
@@ -509,32 +508,37 @@ const RealTimeRecording = ({ route }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      {renderHeader()}
-      {renderRecordingControls()}
-      {renderContent()}
-      <View style={styles.languageSelectorContainer}>
-        <TouchableOpacity
-          style={styles.languageButton}
-          onPress={() => toggleModal("source")}
-        >
-          <MaterialIcons name="language" size={20} color="#6A9C89" />
-          <Text style={styles.languageText}>{sourceLanguage.name}</Text>
-        </TouchableOpacity>
+      <View style={styles.mainContent}>
+        {renderHeader()}
+        {renderRecordingControls()}
+        {renderContent()}
+      </View>
+      {/* 언어 선택기를 항상 표시하도록 변경 */}
+      <View style={styles.bottomContainer}>
+        <View style={styles.languageSelectorContainer}>
+          <TouchableOpacity
+            style={styles.languageButton}
+            onPress={() => toggleModal("source")}
+          >
+            <MaterialIcons name="language" size={20} color="#6A9C89" />
+            <Text style={styles.languageText}>{sourceLanguage.name}</Text>
+          </TouchableOpacity>
 
-        <MaterialIcons
-          name="swap-horiz"
-          size={24}
-          color="#6A9C89"
-          style={styles.swapIcon}
-        />
+          <MaterialIcons
+            name="swap-horiz"
+            size={24}
+            color="#6A9C89"
+            style={styles.swapIcon}
+          />
 
-        <TouchableOpacity
-          style={styles.languageButton}
-          onPress={() => toggleModal("target")}
-        >
-          <MaterialIcons name="language" size={20} color="#6A9C89" />
-          <Text style={styles.languageText}>{targetLanguage.name}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.languageButton}
+            onPress={() => toggleModal("target")}
+          >
+            <MaterialIcons name="language" size={20} color="#6A9C89" />
+            <Text style={styles.languageText}>{targetLanguage.name}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       {/* 언어 선택 모달 */}
       <Modal visible={isModalVisible} transparent={true} animationType="slide">
@@ -560,22 +564,20 @@ const RealTimeRecording = ({ route }) => {
                   style={styles.languageItem}
                   onPress={() => selectLanguage(item)}
                 >
-                  <MaterialIcons
-                    name="language"
-                    size={24}
-                    color="#6A9C89"
-                    style={styles.languageIcon}
-                  />
-                  <Text style={styles.languageItemText}>{item.name}</Text>
+                  <View style={styles.languageItemLeft}>
+                    <MaterialIcons name="language" size={24} color="#6A9C89" />
+                    <Text style={styles.languageItemText}>{item.name}</Text>
+                  </View>
                   <MaterialIcons
                     name="chevron-right"
                     size={24}
-                    color="#6A9C89"
+                    color="#CCCCCC"
                   />
                 </TouchableOpacity>
               )}
               ItemSeparatorComponent={() => <View style={styles.separator} />}
               keyExtractor={(item) => item.code}
+              style={styles.languageList}
             />
           </View>
         </View>
@@ -662,7 +664,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
   },
-
+  mainContent: {
+    flex: 1,
+    paddingBottom: 90, // 하단 여백 추가
+  },
+  bottomSafeArea: {
+    backgroundColor: "#fff",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    marginBottom: 50, // 하단 네비게이션바 높이만큼 마진 추가
+  },
+  bottomContainer: {
+    position: "absolute",
+    bottom: Platform.OS === "ios" ? 100 : 80, // iOS일 경우 더 큰 bottom 값 적용
+    left: 0,
+    right: 0,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    paddingBottom: Platform.OS === "ios" ? 34 : 16, // iOS의 경우 더 큰 패딩
+  },
   // 헤더 관련 스타일
   header: {
     padding: 16,
@@ -805,6 +828,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
+  languageSelectorWrapper: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: Platform.OS === "ios" ? 34 : 56, // 하단 탭바 높이만큼 패딩
+    backgroundColor: "#fff",
+  },
   // 언어 선택 관련 스타일
   languageSelectorContainer: {
     flexDirection: "row",
@@ -822,6 +853,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
+    borderWidth: 1, // 테두리 추가
+    borderColor: "#e9ecef", // 테두리 색상
   },
   languageText: {
     marginLeft: 8,
@@ -850,8 +883,39 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
+    paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
+  languageList: {
+    paddingHorizontal: 16,
+  },
+  languageItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+  },
+  languageItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  languageItemText: {
+    fontSize: 16,
+    color: "#333",
+    marginLeft: 12,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#f0f0f0",
+  },
+  closeButton: {
+    padding: 8,
   },
   closeButton: {
     padding: 8,
