@@ -27,7 +27,7 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
 
   const handleForgotPassword = async () => {
     try {
-      const response = await axios.post(`${NGROK_URL}/forgot-password/`, {
+      const response = await axios.post(`${NGROK_URL}/forgot-password`, {
         email,
       });
 

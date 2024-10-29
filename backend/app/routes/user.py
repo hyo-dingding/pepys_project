@@ -125,7 +125,7 @@ async def delete_user_by_email(email: str):
         )
 
 # 1. 이메일 주소 입력 -> 랜덤 비밀번호 전송
-@user.post("/forgot-password/")
+@user.post("/forgot-password")
 async def send_reset_code(email_request: EmailRequest):
     email = email_request.email
 
@@ -163,7 +163,7 @@ async def send_reset_code(email_request: EmailRequest):
     return {"message": "비밀번호 재설정 코드가 이메일로 전송되었습니다."}
 
 # 2. 랜덤 코드 입력 -> 비밀번호 재설정
-@user.post("/reset-password/")
+@user.post("/reset-password")
 async def reset_password(request: ResetPasswordRequest):
     email, random_code, new_password = request.email, request.random_code, request.new_password
 
