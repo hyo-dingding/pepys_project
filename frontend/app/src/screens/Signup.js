@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { Keyboard } from "react-native";
 import axios from "axios";
+import { NGROK_URL } from "@env";
 
 const nationalities = [
   "United States",
@@ -164,14 +165,18 @@ const SignUp = () => {
 
   const handleSignUp = async () => {
     try {
-      const response = await axios.post("${NGROK_URL}/user", {
-        email: email,
-        password: password,
-        password_retype: password,
-        name: name,
-        nationality: nationality,
-        work_title: workTitle,
-      });
+      const response = await axios.post(
+        `${NGROK_URL}/user`,
+        // "https://cdec-218-148-117-157.ngrok-free.app/user",
+        {
+          email: email,
+          password: password,
+          password_retype: password,
+          name: name,
+          nationality: nationality,
+          work_title: workTitle,
+        }
+      );
 
       console.log(response.data);
       console.log(response.status);

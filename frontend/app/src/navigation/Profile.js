@@ -9,9 +9,40 @@ import {
   ScrollView,
   Platform,
   StatusBar,
+  Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { launchImageLibrary } from "react-native-image-picker";
+import * as ImagePicker from "expo-image-picker"; // expo-image-picker로 변경
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import { NGROK_URL } from "@env";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { initializeApp, getApp } from "firebase/app";
+
+// Firebase 설정 객체 추가
+const firebaseConfig = {
+  apiKey: "AIzaSyCed9IRNe9czcHNrAfpytFEaFWdOrlIz4I",
+  authDomain: "pepysproject-e55ba.firebaseapp.com",
+  projectId: "pepysproject-e55ba",
+  storageBucket: "pepysproject-e55ba.appspot.com", // 실제 스토리지 버킷 URL
+  messagingSenderId: "904750555795",
+  appId: "1:904750555795:android:e742894e0def2484542366",
+};
+
+// Firebase 초기화
+let app;
+let storage;
+
+try {
+  app = getApp();
+} catch (error) {
+  app = initializeApp(firebaseConfig);
+}
+
+// Storage 초기화
+storage = getStorage(app);
+console.log("Storage initialized:", storage ? "Success" : "Failed");
 
 const Profile = () => {
   const [profileData, setProfileData] = useState({
@@ -28,21 +59,134 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
 
   const handlePhotoSelect = async () => {
-    const options = {
-      mediaType: "photo",
-      quality: 1,
-    };
-
     try {
-      const result = await launchImageLibrary(options);
-      if (result.assets?.[0]?.uri) {
-        setProfileData((prev) => ({
-          ...prev,
-          photo: result.assets[0].uri,
-        }));
+      // 권한 요청
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        console.log("Permission to access media library denied");
+        Alert.alert(
+          "Permission Required",
+          "Please allow access to your photo library to select images."
+        );
+        return;
+      }
+
+      // 이미지 선택기 실행
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      console.log("Image picker result:", result);
+
+      if (!result.canceled) {
+        console.log("Selected image URI:", result.assets[0].uri);
+        await uploadImageToFirebase(result.assets[0]);
+      } else {
+        console.log("Image selection cancelled");
       }
     } catch (error) {
       console.log("Error selecting photo:", error);
+      Alert.alert("Error", "Failed to select photo: " + error.message);
+    }
+  };
+
+  const uploadImageToFirebase = async (imageAsset) => {
+    let blob;
+    try {
+      if (!storage) {
+        throw new Error("Storage not initialized");
+      }
+
+      console.log("Starting image upload process...");
+
+      // URI를 blob으로 변환
+      const response = await fetch(imageAsset.uri);
+      blob = await response.blob();
+      console.log("Image converted to blob:", {
+        size: blob.size,
+        type: blob.type,
+      });
+
+      // 파일 이름 생성
+      const extension = imageAsset.uri.split(".").pop();
+      const filename = `profile_${Platform.OS}_${Date.now()}.${extension}`;
+      console.log("Generated filename:", filename);
+
+      // Storage 참조 생성 (web SDK 방식)
+      const storageRef = ref(storage, `profile_images/${filename}`);
+      console.log("Storage reference created");
+
+      // 이미지 업로드
+      const uploadTask = await uploadBytes(storageRef, blob);
+      console.log("Upload successful:", uploadTask.metadata);
+
+      // 다운로드 URL 가져오기
+      const downloadURL = await getDownloadURL(uploadTask.ref);
+      console.log("Download URL:", downloadURL);
+
+      // 프로필 데이터 업데이트
+      setProfileData((prev) => ({
+        ...prev,
+        photo: downloadURL,
+      }));
+
+      Alert.alert("Success", "Image uploaded successfully");
+    } catch (error) {
+      console.error("Firebase upload error:", {
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+        storageAvailable: !!storage,
+      });
+
+      Alert.alert("Upload Error", `Failed to upload image: ${error.message}`);
+    } finally {
+      if (blob) {
+        blob = null;
+      }
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      // 로그아웃 API 호출 - URL을 실제 백엔드 주소로 변경해야 합니다
+      await axios.post(
+        `${NGROK_URL}/logout`
+        // "https://cdec-218-148-117-157.ngrok-free.app/auth/logout"
+      );
+
+      console.log(response.data);
+
+      // 저장된 토큰 제거
+      await AsyncStorage.removeItem("access_token");
+
+      // 로그아웃 성공 알림
+      Alert.alert(
+        "Sign Out Success",
+        "You have been successfully signed out.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // OK 버튼 클릭 시 로그인 페이지로 이동
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Sign Out Failed", "An error occurred while signing out.", [
+        { text: "OK" },
+      ]);
     }
   };
 
@@ -61,7 +205,16 @@ const Profile = () => {
             style={styles.photoContainer}
           >
             {profileData.photo ? (
-              <Image source={{ uri: profileData.photo }} style={styles.photo} />
+              <Image
+                source={{ uri: profileData.photo }}
+                style={styles.photo}
+                onError={(error) => {
+                  console.error(
+                    "Image loading error:",
+                    error.nativeEvent.error
+                  );
+                }}
+              />
             ) : (
               <View style={styles.photoPlaceholder}>
                 <MaterialIcons name="person" size={40} color="#6A9C89" />
@@ -152,7 +305,10 @@ const Profile = () => {
             <Text style={styles.buttonText}>Edit Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.editButton, styles.signOutButton]}>
+          <TouchableOpacity
+            style={[styles.editButton, styles.signOutButton]}
+            onPress={handleSignOut}
+          >
             <MaterialIcons name="logout" size={20} color="#FFF" />
             <Text style={styles.buttonText}>Sign Out</Text>
           </TouchableOpacity>
