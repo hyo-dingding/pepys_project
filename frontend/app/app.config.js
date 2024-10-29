@@ -3,15 +3,16 @@ import { expand } from "dotenv-expand";
 import path from "path";
 
 if (process.env.STAGE) {
-    expand(
-        dotenv.config({
-            path: path.join(__dirname, `.env.${process.env.STAGE}`),
-            override: true,
-        })
-    );
+  expand(
+    dotenv.config({
+      path: path.join(__dirname, `.env.${process.env.STAGE}`),
+      override: true,
+    })
+  );
 }
 
 export default {
+
     expo: {
         name: "YourAppName",
         slug: "your-app",
@@ -34,4 +35,16 @@ export default {
             favicon: "./src/assets/image/favicon.png",
         },
     },
-};
+    android: {
+      adaptiveIcon: {
+        foregroundImage: "./src/assets/image/adaptive-icon.png",
+        backgroundColor: "#FFFFFF",
+      },
+    },
+    ios: {
+      supportsTablet: true,
+    },
+    web: {
+      favicon: "./src/assets/image/favicon.png",
+    },
+  }

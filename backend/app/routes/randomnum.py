@@ -3,7 +3,7 @@ import random
 
 randomnum = APIRouter()
 
-@randomnum.get("/random-number/")
+@randomnum.get("/random-number")
 async def get_random_number(length: int = None):
     # 쿼리 파라미터가 없을 경우, 4~6 사이의 랜덤 값을 설정
     if length is None:
