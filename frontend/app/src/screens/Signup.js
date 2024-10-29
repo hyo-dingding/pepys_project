@@ -164,7 +164,7 @@ const SignUp = () => {
 
   const handleSignUp = async () => {
     try {
-      const response = await axios.post("${NGROK_URL}/user", {
+      const response = await axios.post(`${NGROK_URL}/user`, {
         email: email,
         password: password,
         password_retype: password,

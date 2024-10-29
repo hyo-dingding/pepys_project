@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
- 
- 
+
+
 class User(BaseModel):
     email: str
     password: str #= Field(..., min_length=6, max_length=8)
@@ -39,3 +39,11 @@ class ResetPasswordRequest(BaseModel):
     email: str
     random_code: str
     new_password: str
+
+class UserMe(BaseModel):
+    id: str  # 예: 사용자 고유 ID (MongoDB ObjectId를 문자열로 변환하여 사용)
+    email: str
+    name: str
+
+    # class Config:
+    #     orm_mode = True

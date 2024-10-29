@@ -15,6 +15,9 @@ import {
   Alert,
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { NGROK_URL } from "@env";
 
 const { height } = Dimensions.get("window");
 
@@ -29,76 +32,29 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
   // 상태 관리
   const [currentStep, setCurrentStep] = useState(RESET_STEPS.EMAIL);
   const [email, setEmail] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [timer, setTimer] = useState(180); // 3분 타이머
+  const [isEmailSent, setIsEmailSent] = useState(false);
 
-  // 인증코드 입력을 위한 refs 배열
-  const codeInputs = Array(6)
-    .fill(0)
-    .map(() => useRef(null));
+  const handleForgotPassword = async () => {
+    try {
+      const response = await axios.post(`${NGROK_URL}/forgot-password`, {
+        email,
+      });
 
-  // 타이머 관리
-  React.useEffect(() => {
-    let interval;
-    if (currentStep === RESET_STEPS.VERIFY && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [currentStep, timer]);
+      if (response.status === 200) {
+        setIsEmailSent(true);
+        Alert.alert("Success", "A reset code has been sent to your email.", [
+          { text: "OK", onPress: onClose },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error during forgot password:", error);
 
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
-
-  const handleEmailSubmit = () => {
-    if (!email) {
-      Alert.alert("Error", "Please enter your email.");
-      return;
+      if (error.response && error.response.status === 404) {
+        Alert.alert("Error", "User not found with this email.");
+      } else {
+        Alert.alert("Error", "Failed to send reset code. Please try again.");
+      }
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert("Error", "Please enter a valid email address.");
-      return;
-    }
-    setCurrentStep(RESET_STEPS.VERIFY);
-    setTimer(180);
-  };
-
-  const handleVerifyCode = () => {
-    if (verificationCode.length !== 6) {
-      Alert.alert("Error", "Please enter 6-digit verification code.");
-      return;
-    }
-    setCurrentStep(RESET_STEPS.RESET);
-  };
-
-  const handleResetPassword = () => {
-    if (!newPassword || !confirmPassword) {
-      Alert.alert("Error", "Please fill in all fields.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match.");
-      return;
-    }
-    if (newPassword.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters.");
-      return;
-    }
-    Alert.alert("Success", "Password has been successfully changed.", [
-      { text: "OK", onPress: onClose },
-    ]);
-  };
-
-  const handleResendCode = () => {
-    setTimer(180);
-    Alert.alert("Notice", "Verification code has been resent.");
   };
 
   return (
@@ -155,7 +111,8 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
 
                     <TouchableOpacity
                       style={styles.forgotPasswordButton}
-                      onPress={handleEmailSubmit}
+                      onPress={handleForgotPassword}
+
                     >
                       <Text style={styles.forgotPasswordButtonText}>
                         Send Code
@@ -282,6 +239,9 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
   );
 };
 const LoginModal = ({ visible, onClose, navigation }) => {
+  const [email, setEmail] = useState(""); // 이메일 입력 상태
+  const [password, setPassword] = useState(""); // 비밀번호 입력 상태
+
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const panY = useRef(new Animated.Value(0)).current;
 
@@ -314,9 +274,51 @@ const LoginModal = ({ visible, onClose, navigation }) => {
     })
   ).current;
 
-  const handleLogin = () => {
-    navigation.navigate("MainTabs", { screen: "RoomSetup" });
-    onClose();
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post(
+        `${NGROK_URL}/auth/login`, // 정확한 ngrok URL과 경로 사용
+        {
+          email, // 사용자 입력값
+          password, // 사용자 입력값
+        }
+      );
+
+      if (response.status === 200) {
+        const { access_token } = response.data;
+        console.log("Login successful, token:", access_token);
+        // 토큰저장
+        await AsyncStorage.setItem("access_token", access_token);
+
+        // 로그인 성공 처리, 토큰 저장 등
+        navigation.navigate("MainTabs", { screen: "RoomSetup" });
+      } else {
+        console.error("Login failed", response.status);
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+
+      if (error.response) {
+        if (error.response.status === 401) {
+          Alert.alert(
+            "Error",
+            "Invalid credentials. Please check your email or password."
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            "An error occurred during login. Please try again."
+          );
+        }
+      } else if (error.request) {
+        Alert.alert(
+          "Error",
+          "Failed to connect to server. Please check your network connection."
+        );
+      } else {
+        Alert.alert("Error", "An error occurred while setting up the request.");
+      }
+    }
   };
 
   const translateY = panY.interpolate({
@@ -372,6 +374,8 @@ const LoginModal = ({ visible, onClose, navigation }) => {
                         placeholderTextColor="#CD5C08"
                         autoCapitalize="none"
                         keyboardType="email-address"
+                        value={email}
+                        onChangeText={setEmail}
                       />
                     </View>
 
@@ -382,6 +386,8 @@ const LoginModal = ({ visible, onClose, navigation }) => {
                         placeholder="Password"
                         placeholderTextColor="#CD5C08"
                         secureTextEntry
+                        value={password}
+                        onChangeText={setPassword}
                       />
                     </View>
 
