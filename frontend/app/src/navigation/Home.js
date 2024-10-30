@@ -52,13 +52,10 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleButtonPress = (action) => {
-    setActiveButton(action);
-    if (action === "New Meeting") {
-      navigation.navigate("FileUpload");
+    if (action === "New Meeting" || action === "Upload Recording") {
+        navigation.navigate("FileUpload", { activeButton: action });
     } else if (action === "Join Meeting") {
-      navigation.navigate("MeetingID");
-    } else if (action === "Upload Recording") {
-      navigation.navigate("AudioUpload");
+        navigation.navigate("MeetingID");
     }
   };
 

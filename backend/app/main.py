@@ -12,7 +12,9 @@ from routes.randomnum import randomnum
 from routes.user import user
 from routes.audio import audio
 from routes.websocket import ws
-
+# from routes.rag import rag
+from routes.llm import get_llm
+import uvicorn
 
 app = FastAPI()
 
@@ -22,6 +24,8 @@ app.include_router(user)
 
 app.include_router(audio)
 app.include_router(ws)
+# app.include_router(rag)
+app.include_router(get_llm)
 
 # CORS 설정
 app.add_middleware(
@@ -30,8 +34,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
-
+# 파일 업로드 크기 제한 설정
+app.add_middleware(
+    uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware, trusted_hosts="*"
+)
 
 @app.get("/")
 async def root():

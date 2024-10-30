@@ -11,49 +11,93 @@ import {
     Clipboard,
     Dimensions,
     Animated,
+    Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NGROK_URL } from "@env";
+import * as FileSystem from "expo-file-system";
+// import { encode } from "react-native-base64";
+import { encode as encodeBase64 } from "base64-arraybuffer";
+import * as MediaLibrary from "expo-media-library";
 
 const { width } = Dimensions.get("window");
 
+// const languages = [
+//     { code: "ko", name: "한국어" },
+//     { code: "en", name: "English" },
+//     { code: "es", name: "Español" },
+//     { code: "zh", name: "中文" },
+//     { code: "ja", name: "日本語" },
+// ];
+
 const languages = [
-    { code: "ko", name: "한국어" },
     { code: "en", name: "English" },
-    { code: "es", name: "Español" },
+    { code: "ko", name: "한국어" },
     { code: "zh", name: "中文" },
     { code: "ja", name: "日本語" },
 ];
 
 const AudioUploadRecording = ({ route }) => {
-    const { isHost = false, roomCode: initialRoomCode } = route?.params || {};
+    const { isHost = false } = route?.params || {};
+    const { room_code, stt_text, summary, detected_language } = route.params;
+    const [roomCode, setRoomCode] = useState("");
+    const [sourceLanguage, setSourceLanguage] = useState(detected_language);
+    const [targetLanguage, setTargetLanguage] = useState(languages[1]); // 기본값: 한국어
+    const [summarizedText, setSummarizedText] = useState(
+        summary[targetLanguage]
+    ); // 초기 한국어 요약
 
-    // States
-    const [sourceLanguage, setSourceLanguage] = useState(languages[0]);
-    const [targetLanguage, setTargetLanguage] = useState(languages[1]);
     const [isModalVisible, setModalVisible] = useState(false);
     const [isShareModalVisible, setShareModalVisible] = useState(false);
     const [selectingLanguage, setSelectingLanguage] = useState(null);
     const [activeTab, setActiveTab] = useState("transcription");
-    const [roomCode, setRoomCode] = useState("");
+
     const [isRecording, setIsRecording] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const [showStopModal, setShowStopModal] = useState(false);
-
-    const [mongoSttResult, setMongoSttResult] = useState("");
+    const [sttText, setSttText] = useState("");
 
     // Animation values
     const fadeAnim = new Animated.Value(1);
     const scaleAnim = new Animated.Value(1);
+    useEffect(() => {
+        // 오디오 세션을 활성화
+        const enableAudioSession = async () => {
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: false,
+                interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+                playsInSilentModeIOS: true, // iOS에서 음소거 모드에서도 재생 가능
+                shouldDuckAndroid: true,
+                staysActiveInBackground: false,
+                interruptionModeAndroid:
+                    Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+            });
+        };
+
+        enableAudioSession();
+    }, []);
 
     useEffect(() => {
-        fetchMongoSttResult();
+        // targetLanguage가 변경될 때마다 요약 업데이트
+        setSummarizedText(summary[targetLanguage.code]);
 
+        // if (stt_text) {
+        //     elevenLabsVoice(); // stt_text가 존재하면 TTS 생성 함수 호출
+        // }
+    }, [stt_text, targetLanguage, summary]);
+
+    const selectLanguage = (language) => {
+        setTargetLanguage(language);
+        setModalVisible(false);
+    };
+
+    useEffect(() => {
         let interval;
         if (isRecording && isHost && !isPaused) {
             interval = setInterval(() => {
@@ -95,18 +139,8 @@ const AudioUploadRecording = ({ route }) => {
         return () => clearInterval(interval);
     }, [isRecording, isHost, isPaused]);
 
-    const toggleModal = (type) => {
-        setSelectingLanguage(type);
+    const toggleModal = () => {
         setModalVisible(!isModalVisible);
-    };
-
-    const selectLanguage = (language) => {
-        if (selectingLanguage === "source") {
-            setSourceLanguage(language);
-        } else {
-            setTargetLanguage(language);
-        }
-        setModalVisible(false);
     };
 
     const formatTime = (seconds) => {
@@ -118,25 +152,144 @@ const AudioUploadRecording = ({ route }) => {
     };
 
     // MongoDB에서 가져온 STT 결과를 저장할 상태 추가
-    const fetchMongoSttResult = async () => {
-        const storedRoomCode = await AsyncStorage.getItem("roomCode");
-        if (storedRoomCode) {
-            setRoomCode(storedRoomCode);
+    // const fetchMongoSttResult = async (roomCode) => {
+    //     try {
+    //         const response = await axios.get(
+    //             `https://4c7a-211-213-171-236.ngrok-free.app/get-results/${room_code}`
+    //         );
+    //         if (response.data && response.data.stt_text) {
+    //             setSttText(response.data.stt_text);
+    //         } else {
+    //             console.error("MongoDB에서 STT 결과를 가져오는 중 오류 발생");
+    //         }
+    //     } catch (error) {
+    //         console.error(
+    //             "MongoDB에서 STT 결과를 가져오는 중 오류 발생",
+    //             error
+    //         );
+    //     }
+    // };
+
+    // 요약 결과를 가져오는 함수
+    // const fetchSummary = async (room_code, setTargetLanguage) => {
+    //     try {
+    //         const response = await axios.get(
+    //             `https://33f7-211-213-171-236.ngrok-free.app/get-results/${room_code}`,
+    //             { params: { language: setTargetLanguage } }
+    //         );
+
+    //         if (response.data && response.data.summary) {
+    //             setSummarizedText(response.data.summary);
+    //         } else {
+    //             console.error("요약 결과를 가져오는 중 오류 발생");
+    //         }
+    //     } catch (error) {
+    //         console.error("요약 가져오기 실패:", error);
+    //         // } finally {
+    //         //     setIsLoading(false);
+    //     }
+    // };
+
+    // async function configureAudio() {
+    //     await Audio.setAudioModeAsync({
+    //         allowsRecordingIOS: false,
+    //         interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+    //         playsInSilentModeIOS: true,
+    //         shouldDuckAndroid: true,
+    //         interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+    //         playThroughEarpieceAndroid: false,
+    //         staysActiveInBackground: false,
+    //     });
+    // }
+
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [sound, setSound] = useState();
+    const [audioFileName, setAudioFileName] = useState("");
+
+    // const blobToBase64 = (blob) => {
+    //     return new Promise((resolve, reject) => {
+    //         const reader = new FileReader();
+    //         reader.onloadend = () => resolve(reader.result.split(",")[1]);
+    //         reader.onerror = reject;
+    //         reader.readAsDataURL(blob);
+    //     });
+    // };
+    // function base64ToBlob(base64, mimeType) {
+    //     const binaryString = atob(base64);
+    //     const bytes = new Uint8Array(binaryString.length);
+    //     for (let i = 0; i < binaryString.length; i++) {
+    //         bytes[i] = binaryString.charCodeAt(i);
+    //     }
+    //     return new Blob([bytes], { type: mimeType });
+    // }
+
+    const elevenLabsVoice = async () => {
+        console.log("보이스 클로닝 요청");
+        try {
+            // 백엔드에서 텍스트 음성 변환 파일 요청
+            const response = await axios.post(
+                "https://0bc3-211-213-171-236.ngrok-free.app/convert-text-to-speech/",
+                {
+                    text: stt_text,
+                },
+                {
+                    headers: { "Content-Type": "application/json" }, // JSON 형식 지정
+                }
+            );
+            console.log("response.data", response);
+            const { audio_file_name } = response.data;
+            setAudioFileName(audio_file_name);
+            console.log("Audio file name set:", audio_file_name);
+            console.log("setAudioFileName", setAudioFileName);
+            console.log("audioFileName", audioFileName);
+        } catch (error) {
+            console.error("Error playing TTS:", error);
+        }
+    };
+
+    const playAudio = async () => {
+        console.log("오디오 재생시작");
+        if (!audioFileName) {
+            console.error("Audio file name not set.");
+            return;
         }
 
         try {
-            const response = await fetch(
-                `${NGROK_URL}/upload-audio/get-stt/${storedRoomCode}`
-                // `https://35dc-211-213-171-236.ngrok-free.app/get-stt/${storedRoomCode}`
-            );
+            const { status } = await Audio.requestPermissionsAsync();
+            if (status !== "granted") {
+                console.error("Audio playback permissions not granted.");
+                return;
+            }
 
-            const result = await response.json();
-            setMongoSttResult(result.stt_text);
-        } catch (error) {
-            console.error(
-                "MongoDB에서 STT 결과를 가져오는 중 오류 발생",
-                error
+            // const audioUri = `https://your-server-url.com/voice_clones/${filename}`;
+            const audioUri = `https://0bc3-211-213-171-236.ngrok-free.app/get-voice-audio/${audioFileName}`;
+            // const audioUri = `../../../../backend/voice_files/${audioFileName}`;
+            // console.log(audio_file_name);
+            console.log(audioUri);
+
+            // 새로운 사운드 객체 생성 및 오디오 파일 로드
+            const { sound } = await Audio.Sound.createAsync(
+                { uri: audioUri },
+                { shouldPlay: true }
             );
+            console.log("오디오 재생 시작");
+            setSound(sound);
+            await sound.playAsync();
+            // await sound.setVolumeAsync(1.0);
+            
+
+            // 재생 상태 업데이트 (재생이 끝났을 때 해제)
+            sound.setOnPlaybackStatusUpdate((status) => {
+                if (status.didJustFinish) {
+                    console.log("오디오 재생 완료");
+                    newSound.unloadAsync(); // 재생 완료 후 해제
+                    setSound(null);
+                }
+            });
+
+            // 오디오 재생
+        } catch (error) {
+            console.error("오디오 재생 오류:", error);
         }
     };
 
@@ -262,7 +415,8 @@ const AudioUploadRecording = ({ route }) => {
                     ]}
                     onPress={() => {
                         setActiveTab("transcription");
-                        fetchMongoSttResult();
+                        elevenLabsVoice();
+                        // fetchMongoSttResult();
                     }}
                 >
                     <Text
@@ -280,7 +434,10 @@ const AudioUploadRecording = ({ route }) => {
                         styles.tab,
                         activeTab === "summary" && styles.activeTab,
                     ]}
-                    onPress={() => setActiveTab("summary")}
+                    onPress={() => {
+                        setActiveTab("summary");
+                        // fetchSummary();
+                    }}
                 >
                     <Text
                         style={[
@@ -297,13 +454,22 @@ const AudioUploadRecording = ({ route }) => {
                 {activeTab === "transcription" ? (
                     <View style={styles.transcriptionContainer}>
                         <View style={styles.messageContainer}>
-                            <Text style={styles.timestamp}>00:00</Text>
+                            {/* 보이스 클론 추가 */}
+                            <View style={styles.timestampContainer}>
+                                <Text style={styles.timestamp}></Text>
+                                <TouchableOpacity onPress={playAudio}>
+                                    <MaterialIcons
+                                        name="volume-up"
+                                        size={24}
+                                        color="black"
+                                        style={styles.speakerIcon}
+                                    />
+                                </TouchableOpacity>
+                            </View>
                             <View style={styles.messageBubble}>
-                                <Text style={styles.speakerName}>
-                                    Speaker 1
-                                </Text>
+                                <Text style={styles.speakerName}>Speaker</Text>
                                 <Text style={styles.messageText}>
-                                    {mongoSttResult}
+                                    {stt_text}
                                 </Text>
                             </View>
                         </View>
@@ -311,11 +477,7 @@ const AudioUploadRecording = ({ route }) => {
                 ) : (
                     <View style={styles.summaryContainer}>
                         <Text style={styles.summaryText}>
-                            {isRecording
-                                ? "Meeting summary will be generated after the session ends."
-                                : isHost
-                                ? "Start recording to begin summary generation"
-                                : "Waiting for host to start recording..."}
+                            {summarizedText || "요약을 가져오는 중..."}
                         </Text>
                     </View>
                 )}
@@ -645,6 +807,14 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#666",
         marginBottom: 4,
+    },
+    timestampContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between", // 오른쪽에 아이콘 정렬
+    },
+    speakerIcon: {
+        marginLeft: 8, // 아이콘과 텍스트 간격 조절
     },
     messageBubble: {
         backgroundColor: "#fff",
