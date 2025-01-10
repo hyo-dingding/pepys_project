@@ -12,6 +12,7 @@ from config.db import conn
 
 # 환경 변수 로드
 load_dotenv()
+# 수정
 
 # Azure OpenAI 설정
 llm = AzureChatOpenAI(
