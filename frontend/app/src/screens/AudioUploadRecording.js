@@ -1,64 +1,98 @@
 import React, { useState, useEffect } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  FlatList,
-  ScrollView,
-  StatusBar,
-  Clipboard,
-  Dimensions,
-  Animated,
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    Modal,
+    FlatList,
+    ScrollView,
+    StatusBar,
+    Clipboard,
+    Dimensions,
+    Animated,
+    Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
 import { LinearGradient } from "expo-linear-gradient";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NGROK_URL } from "@env";
+import * as FileSystem from "expo-file-system";
+// import { encode } from "react-native-base64";
+import { encode as encodeBase64 } from "base64-arraybuffer";
+import * as MediaLibrary from "expo-media-library";
 
 const { width } = Dimensions.get("window");
 
+
 const languages = [
-  { code: "ko", name: "한국어" },
-  { code: "en", name: "English" },
-  { code: "es", name: "Español" },
-  { code: "zh", name: "中文" },
-  { code: "ja", name: "日本語" },
+    { code: "en", name: "English" },
+    { code: "ko", name: "한국어" },
+    { code: "zh", name: "中文" },
+    { code: "ja", name: "日本語" },
 ];
 
 const AudioUploadRecording = ({ route }) => {
-  const { isHost = false, roomCode: initialRoomCode } = route?.params || {};
+    const { isHost = false } = route?.params || {};
+    const { room_code, stt_text, summary, detected_language } = route.params;
+    const [roomCode, setRoomCode] = useState("");
+    const [sourceLanguage, setSourceLanguage] = useState(detected_language);
+    const [targetLanguage, setTargetLanguage] = useState(languages[1]); // 기본값: 한국어
+    const [summarizedText, setSummarizedText] = useState(
+        summary[targetLanguage]
+    ); // 초기 한국어 요약
 
-  // States
-  const [sourceLanguage, setSourceLanguage] = useState(languages[0]);
-  const [targetLanguage, setTargetLanguage] = useState(languages[1]);
-  const [isModalVisible, setModalVisible] = useState(false);
-  const [isShareModalVisible, setShareModalVisible] = useState(false);
-  const [selectingLanguage, setSelectingLanguage] = useState(null);
-  const [activeTab, setActiveTab] = useState("transcription");
-  const [roomCode, setRoomCode] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [showStopModal, setShowStopModal] = useState(false);
+    const [isModalVisible, setModalVisible] = useState(false);
+    const [isShareModalVisible, setShareModalVisible] = useState(false);
+    const [selectingLanguage, setSelectingLanguage] = useState(null);
+    const [activeTab, setActiveTab] = useState("transcription");
 
-  const [mongoSttResult, setMongoSttResult] = useState("");
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    const [showStopModal, setShowStopModal] = useState(false);
+    const [sttText, setSttText] = useState("");
 
-  // Animation values
-  const fadeAnim = new Animated.Value(1);
-  const scaleAnim = new Animated.Value(1);
+    // Animation values
+    const fadeAnim = new Animated.Value(1);
+    const scaleAnim = new Animated.Value(1);
+    useEffect(() => {
+        // 오디오 세션을 활성화
+        const enableAudioSession = async () => {
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: false,
+                interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+                playsInSilentModeIOS: true, 
+                shouldDuckAndroid: true,
+                staysActiveInBackground: false,
+                interruptionModeAndroid:
+                    Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+            });
+        };
 
-  useEffect(() => {
-    fetchMongoSttResult();
+        enableAudioSession();
+    }, []);
 
-    let interval;
-    if (isRecording && isHost && !isPaused) {
-      interval = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
+    useEffect(() => {
+        // targetLanguage가 변경될 때마다 요약 업데이트
+        setSummarizedText(summary[targetLanguage.code]);
+
+    }, [stt_text, targetLanguage, summary]);
+
+    const selectLanguage = (language) => {
+        setTargetLanguage(language);
+        setModalVisible(false);
+    };
+
+    useEffect(() => {
+        let interval;
+        if (isRecording && isHost && !isPaused) {
+            interval = setInterval(() => {
+                setRecordingTime((prev) => prev + 1);
+            }, 1000);
 
       Animated.loop(
         Animated.sequence([
@@ -95,19 +129,9 @@ const AudioUploadRecording = ({ route }) => {
     return () => clearInterval(interval);
   }, [isRecording, isHost, isPaused]);
 
-  const toggleModal = (type) => {
-    setSelectingLanguage(type);
-    setModalVisible(!isModalVisible);
-  };
-
-  const selectLanguage = (language) => {
-    if (selectingLanguage === "source") {
-      setSourceLanguage(language);
-    } else {
-      setTargetLanguage(language);
-    }
-    setModalVisible(false);
-  };
+    const toggleModal = () => {
+        setModalVisible(!isModalVisible);
+    };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -117,25 +141,108 @@ const AudioUploadRecording = ({ route }) => {
       .padStart(2, "0")}`;
   };
 
-  // MongoDB에서 가져온 STT 결과를 저장할 상태 추가
-  const fetchMongoSttResult = async () => {
-    const storedRoomCode = await AsyncStorage.getItem("roomCode");
-    if (storedRoomCode) {
-      setRoomCode(storedRoomCode);
-    }
+    // MongoDB에서 가져온 STT 결과를 저장할 상태 추가
+    // const fetchMongoSttResult = async (roomCode) => {
+    //     try {
+    //         const response = await axios.get(
+    //             `https://4c7a-211-213-171-236.ngrok-free.app/get-results/${room_code}`
+    //         );
+    //         if (response.data && response.data.stt_text) {
+    //             setSttText(response.data.stt_text);
+    //         } else {
+    //             console.error("MongoDB에서 STT 결과를 가져오는 중 오류 발생");
+    //         }
+    //     } catch (error) {
+    //         console.error(
+    //             "MongoDB에서 STT 결과를 가져오는 중 오류 발생",
+    //             error
+    //         );
+    //     }
+    // };
 
-    try {
-      const response = await fetch(
-        `${NGROK_URL}/upload-audio/get-stt/${storedRoomCode}`
-        // `https://35dc-211-213-171-236.ngrok-free.app/get-stt/${storedRoomCode}`
-      );
+    // 요약 결과를 가져오는 함수
+    // const fetchSummary = async (room_code, setTargetLanguage) => {
+    //     try {
+    //         const response = await axios.get(
+    //             `https://33f7-211-213-171-236.ngrok-free.app/get-results/${room_code}`,
+    //             { params: { language: setTargetLanguage } }
+    //         );
 
-      const result = await response.json();
-      setMongoSttResult(result.stt_text);
-    } catch (error) {
-      console.error("MongoDB에서 STT 결과를 가져오는 중 오류 발생", error);
-    }
-  };
+    //         if (response.data && response.data.summary) {
+    //             setSummarizedText(response.data.summary);
+    //         } else {
+    //             console.error("요약 결과를 가져오는 중 오류 발생");
+    //         }
+    //     } catch (error) {
+    //         console.error("요약 가져오기 실패:", error);
+    //         // } finally {
+    //         //     setIsLoading(false);
+    //     }
+    // };
+
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [sound, setSound] = useState();
+    const [audioFileName, setAudioFileName] = useState("");
+
+    const elevenLabsVoice = async () => {
+        try {
+            // 백엔드에서 텍스트 음성 변환 파일 요청
+            const response = await axios.post(
+                `${NGROK_URL}/convert-text-to-speech/`,
+                {
+                    text: stt_text,
+                },
+                {
+                    headers: { "Content-Type": "application/json" }, // JSON 형식 지정
+                }
+            );
+            const { audio_file_name } = response.data;
+            setAudioFileName(audio_file_name);
+        } catch (error) {
+            console.error("Error playing TTS:", error);
+        }
+    };
+
+    const playAudio = async () => {
+        console.log("오디오 재생시작");
+        if (!audioFileName) {
+            console.error("Audio file name not set.");
+            return;
+        }
+
+        try {
+            const { status } = await Audio.requestPermissionsAsync();
+            if (status !== "granted") {
+                console.error("Audio playback permissions not granted.");
+                return;
+            }
+
+            const audioUri = `${NGROK_URL}/get-voice-audio/${audioFileName}`;
+
+            // 새로운 사운드 객체 생성 및 오디오 파일 로드
+            const { sound } = await Audio.Sound.createAsync(
+                { uri: audioUri },
+                { shouldPlay: true }
+            );
+            console.log("오디오 재생 시작");
+            setSound(sound);
+            await sound.playAsync();
+            
+
+            // 재생 상태 업데이트 (재생이 끝났을 때 해제)
+            sound.setOnPlaybackStatusUpdate((status) => {
+                if (status.didJustFinish) {
+                    console.log("오디오 재생 완료");
+                    newSound.unloadAsync(); // 재생 완료 후 해제
+                    setSound(null);
+                }
+            });
+
+            // 오디오 재생
+        } catch (error) {
+            console.error("오디오 재생 오류:", error);
+        }
+    };
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -230,68 +337,85 @@ const AudioUploadRecording = ({ route }) => {
     </View>
   );
 
-  const renderContent = () => (
-    <View style={styles.contentContainer}>
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[
-            styles.tab,
-            activeTab === "transcription" && styles.activeTab,
-          ]}
-          onPress={() => {
-            setActiveTab("transcription");
-            fetchMongoSttResult();
-          }}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "transcription" && styles.activeTabText,
-            ]}
-          >
-            Transcription
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "summary" && styles.activeTab]}
-          onPress={() => setActiveTab("summary")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "summary" && styles.activeTabText,
-            ]}
-          >
-            Summary
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.contentScroll}>
-        {activeTab === "transcription" ? (
-          <View style={styles.transcriptionContainer}>
-            <View style={styles.messageContainer}>
-              <Text style={styles.timestamp}>00:00</Text>
-              <View style={styles.messageBubble}>
-                <Text style={styles.speakerName}>Speaker 1</Text>
-                <Text style={styles.messageText}>{mongoSttResult}</Text>
-              </View>
+    const renderContent = () => (
+        <View style={styles.contentContainer}>
+            <View style={styles.tabs}>
+                <TouchableOpacity
+                    style={[
+                        styles.tab,
+                        activeTab === "transcription" && styles.activeTab,
+                    ]}
+                    onPress={() => {
+                        setActiveTab("transcription");
+                        elevenLabsVoice();
+                        // fetchMongoSttResult();
+                    }}
+                >
+                    <Text
+                        style={[
+                            styles.tabText,
+                            activeTab === "transcription" &&
+                                styles.activeTabText,
+                        ]}
+                    >
+                        Transcription
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[
+                        styles.tab,
+                        activeTab === "summary" && styles.activeTab,
+                    ]}
+                    onPress={() => {
+                        setActiveTab("summary");
+                        // fetchSummary();
+                    }}
+                >
+                    <Text
+                        style={[
+                            styles.tabText,
+                            activeTab === "summary" && styles.activeTabText,
+                        ]}
+                    >
+                        Summary
+                    </Text>
+                </TouchableOpacity>
             </View>
-          </View>
-        ) : (
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryText}>
-              {isRecording
-                ? "Meeting summary will be generated after the session ends."
-                : isHost
-                ? "Start recording to begin summary generation"
-                : "Waiting for host to start recording..."}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-    </View>
-  );
+
+            <ScrollView style={styles.contentScroll}>
+                {activeTab === "transcription" ? (
+                    <View style={styles.transcriptionContainer}>
+                        <View style={styles.messageContainer}>
+                            {/* 보이스 클론 추가 */}
+                            <View style={styles.timestampContainer}>
+                                <Text style={styles.timestamp}></Text>
+                                <TouchableOpacity onPress={playAudio}>
+                                    <MaterialIcons
+                                        name="volume-up"
+                                        size={24}
+                                        color="black"
+                                        style={styles.speakerIcon}
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.messageBubble}>
+                                <Text style={styles.speakerName}>Speaker</Text>
+                                <Text style={styles.messageText}>
+                                    {stt_text}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                ) : (
+                    <View style={styles.summaryContainer}>
+                        <Text style={styles.summaryText}>
+                            {summarizedText || "요약을 가져오는 중..."}
+                        </Text>
+                    </View>
+                )}
+            </ScrollView>
+        </View>
+    );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -552,74 +676,85 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // 트랜스크립션 관련 스타일
-  contentScroll: {
-    flex: 1,
-    padding: 16,
-  },
-  transcriptionContainer: {
-    flex: 1,
-  },
-  messageContainer: {
-    marginBottom: 16,
-  },
-  timestamp: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 4,
-  },
-  messageBubble: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
+    // 트랜스크립션 관련 스타일
+    contentScroll: {
+        flex: 1,
+        padding: 16,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  speakerName: {
-    fontSize: 12,
-    color: "#6A9C89",
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  messageText: {
-    fontSize: 14,
-    color: "#2D3436",
-    lineHeight: 20,
-  },
+    transcriptionContainer: {
+        flex: 1,
+    },
+    messageContainer: {
+        marginBottom: 16,
+    },
+    timestamp: {
+        fontSize: 12,
+        color: "#666",
+        marginBottom: 4,
+    },
+    timestampContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between", // 오른쪽에 아이콘 정렬
+    },
+    speakerIcon: {
+        marginLeft: 8, // 아이콘과 텍스트 간격 조절
+    },
+    messageBubble: {
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 12,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    speakerName: {
+        fontSize: 12,
+        color: "#6A9C89",
+        fontWeight: "600",
+        marginBottom: 4,
+    },
+    messageText: {
+        fontSize: 14,
+        color: "#2D3436",
+        lineHeight: 20,
+    },
 
-  // 언어 선택 관련 스타일
-  languageSelectorContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
-  },
-  languageButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f8f9fa",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-  },
-  languageText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: "#2D3436",
-    fontWeight: "500",
-  },
-  swapIcon: {
-    marginHorizontal: 16,
-  },
+    // 언어 선택 관련 스타일
+    languageSelectorContainer: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 16,
+        backgroundColor: "#fff",
+        borderTopWidth: 1,
+        borderTopColor: "#f0f0f0",
+        position: "absolute", // 화면 하단에 고정
+        bottom: 60, // 네비게이션 바 위로 이동
+        width: "100%", // 전체 화면 너비 차지
+    },
+    languageButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#f8f9fa",
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+    },
+    languageText: {
+        marginLeft: 8,
+        fontSize: 14,
+        color: "#2D3436",
+        fontWeight: "500",
+    },
+    swapIcon: {
+        marginHorizontal: 16,
+    },
 
   // 모달 관련 스타일
   modalOverlay: {

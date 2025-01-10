@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -18,6 +18,9 @@ import * as FileSystem from "expo-file-system";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NGROK_URL } from "@env";
+import * as Asset from "expo-asset";
+import { v4 as uuidv4 } from "uuid";
+import * as Crypto from "expo-crypto";
 
 const { width } = Dimensions.get("window");
 
@@ -35,19 +38,20 @@ const AudioUploadScreen = () => {
                 copyToCacheDirectory: true,
                 multiple: true,
             });
+            console.log("result", result);
 
             if (!result.canceled) {
                 const selectedFile = result.assets[0];
-                const localUri = `${FileSystem.documentDirectory}${selectedFile.name}`;
-                await FileSystem.copyAsync({
-                    from: selectedFile.uri,
-                    to: localUri,
-                });
+                const filename = selectedFile.name
+                const localUri = selectedFile.uri
 
+            
                 const fileUri =
                     Platform.OS === "ios"
                         ? localUri.replace("file://", "")
                         : localUri;
+            
+                console.log("fileUri", fileUri);
 
                 const newFiles = {
                     name: selectedFile.name,
@@ -87,8 +91,7 @@ const AudioUploadScreen = () => {
             });
             // 파일을 업로드
             const response = await axios.post(
-                `${NGROK_URL}/upload-audio`,
-                // "https://35dc-211-213-171-236.ngrok-free.app/upload-audio",
+                `${NGROK_URL}/upload-audio-complete`,
                 formData,
                 {
                     headers: {
@@ -97,16 +100,13 @@ const AudioUploadScreen = () => {
                 }
             );
 
-            const result = response.data;
-
-            if (result.roomCode) {
-                const roomCode = result.roomCode;
-                await AsyncStorage.setItem("roomCode", roomCode);
-            } else {
-                console.error("Error There is no roomCode");
-            }
-
-            return navigation.navigate("AudioUploadRecording");
+            const result = response.data.data;
+            navigation.navigate("AudioUploadRecording", {
+                stt_text: result.stt_text,
+                room_code: result.room_code,
+                summary: result.summary,
+                detected_language: result.detected_language,
+            });
         } catch (err) {
             console.error("Error uploading file:", err);
             Alert.alert("Error", "Failed to upload file");
@@ -413,5 +413,3 @@ const styles = StyleSheet.create({
 });
 
 export default AudioUploadScreen;
-
-

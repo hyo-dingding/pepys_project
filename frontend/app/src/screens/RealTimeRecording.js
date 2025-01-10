@@ -59,7 +59,7 @@ const RealTimeRecording = ({ route }) => {
   const fadeAnim = new Animated.Value(1);
   const scaleAnim = new Animated.Value(1);
 
-  // const recordingRef = useRef(null);
+    const recordingRef = useRef(null);
 
   const [recording, setRecording] = useState(null);
   const ws = useRef(null); // WebSocket 참조
@@ -74,30 +74,35 @@ const RealTimeRecording = ({ route }) => {
           console.log("웹소켓 연결 성공");
           setIsWebSocketConnected(true);
 
-          // 선택된 언어 코드 전송
-          const languageSettings = {
-            source: sourceLanguage.code,
-            target: targetLanguage.code,
-          };
-          ws.current.send(JSON.stringify(languageSettings));
-        };
+                    // 선택된 언어 코드 전송
+                    const languageSettings = {
+                        source: sourceLanguage.code,
+                        target: targetLanguage.code,
+                    };
+                    console.log(
+                        "[DEBUG] 전송된 JSON 데이터:",
+                        languageSettings
+                    );
+                    ws.current.send(JSON.stringify(languageSettings));
+                };
 
-        ws.current.onmessage = (event) => {
-          const receivedData = JSON.parse(event.data);
-          console.log("받은 데이터:", receivedData);
+                ws.current.onmessage = (event) => {
+                    console.log("[DEBUG] 수신된 메시지:", event.data); // 수신된 데이터 로그 출력
+                    const receivedData = JSON.parse(event.data);
+                    console.log("받은 데이터:", receivedData);
 
-          // 받은 텍스트를 트랜스크립션에 추가
-          if (receivedData.transcription) {
-            setTranscription(
-              (prev) => prev + "\n" + receivedData.transcription
-            );
-          }
+                    // // 받은 텍스트를 트랜스크립션에 추가
+                    // if (receivedData.transcription) {
+                    //     setTranscription(
+                    //         (prev) => prev + "\n" + receivedData.transcription
+                    //     );
+                    // }
 
-          // 번역된 오디오가 있으면 재생
-          if (receivedData.translatedAudio) {
-            playAudio(receivedData.translatedAudio);
-          }
-        };
+                    // // 번역된 오디오가 있으면 재생
+                    // if (receivedData.translatedAudio) {
+                    //     playAudio(receivedData.translatedAudio); 
+                    // }
+                };
 
         ws.current.onerror = (error) => {
           console.error("웹소켓 오류:", error.message || error);
@@ -250,12 +255,17 @@ const RealTimeRecording = ({ route }) => {
             // Base64 디코딩 후 16비트 PCM 형식으로 변환
             const audioData = Buffer.from(fileInfo, "base64");
 
-            // WebSocket을 통해 청크 단위로 전송
-            const CHUNK_SIZE = 8192; // 8KB 청크
-            for (let i = 0; i < audioData.length; i += CHUNK_SIZE) {
-              const chunk = audioData.slice(i, i + CHUNK_SIZE);
-              ws.current.send(chunk);
-            }
+                        // WebSocket을 통해 청크 단위로 전송
+                        const CHUNK_SIZE = 8192; // 8KB 청크
+                        for (let i = 0; i < audioData.length; i += CHUNK_SIZE) {
+                            const chunk = audioData.slice(i, i + CHUNK_SIZE);
+                            ws.current.send(chunk);
+                            console.log(
+                                "청크 데이터 전송:",
+                                i / CHUNK_SIZE + 1
+                            );
+                        }
+                  
 
             console.log("오디오 데이터 전송 완료");
           } catch (error) {
