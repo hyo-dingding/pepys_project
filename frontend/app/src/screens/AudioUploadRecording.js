@@ -27,13 +27,6 @@ import * as MediaLibrary from "expo-media-library";
 
 const { width } = Dimensions.get("window");
 
-// const languages = [
-//     { code: "ko", name: "한국어" },
-//     { code: "en", name: "English" },
-//     { code: "es", name: "Español" },
-//     { code: "zh", name: "中文" },
-//     { code: "ja", name: "日本語" },
-// ];
 
 const languages = [
     { code: "en", name: "English" },
@@ -72,7 +65,7 @@ const AudioUploadRecording = ({ route }) => {
             await Audio.setAudioModeAsync({
                 allowsRecordingIOS: false,
                 interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
-                playsInSilentModeIOS: true, // iOS에서 음소거 모드에서도 재생 가능
+                playsInSilentModeIOS: true, 
                 shouldDuckAndroid: true,
                 staysActiveInBackground: false,
                 interruptionModeAndroid:
@@ -87,9 +80,6 @@ const AudioUploadRecording = ({ route }) => {
         // targetLanguage가 변경될 때마다 요약 업데이트
         setSummarizedText(summary[targetLanguage.code]);
 
-        // if (stt_text) {
-        //     elevenLabsVoice(); // stt_text가 존재하면 TTS 생성 함수 호출
-        // }
     }, [stt_text, targetLanguage, summary]);
 
     const selectLanguage = (language) => {
@@ -190,45 +180,15 @@ const AudioUploadRecording = ({ route }) => {
     //     }
     // };
 
-    // async function configureAudio() {
-    //     await Audio.setAudioModeAsync({
-    //         allowsRecordingIOS: false,
-    //         interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
-    //         playsInSilentModeIOS: true,
-    //         shouldDuckAndroid: true,
-    //         interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
-    //         playThroughEarpieceAndroid: false,
-    //         staysActiveInBackground: false,
-    //     });
-    // }
-
     const [isPlaying, setIsPlaying] = useState(false);
     const [sound, setSound] = useState();
     const [audioFileName, setAudioFileName] = useState("");
 
-    // const blobToBase64 = (blob) => {
-    //     return new Promise((resolve, reject) => {
-    //         const reader = new FileReader();
-    //         reader.onloadend = () => resolve(reader.result.split(",")[1]);
-    //         reader.onerror = reject;
-    //         reader.readAsDataURL(blob);
-    //     });
-    // };
-    // function base64ToBlob(base64, mimeType) {
-    //     const binaryString = atob(base64);
-    //     const bytes = new Uint8Array(binaryString.length);
-    //     for (let i = 0; i < binaryString.length; i++) {
-    //         bytes[i] = binaryString.charCodeAt(i);
-    //     }
-    //     return new Blob([bytes], { type: mimeType });
-    // }
-
     const elevenLabsVoice = async () => {
-        console.log("보이스 클로닝 요청");
         try {
             // 백엔드에서 텍스트 음성 변환 파일 요청
             const response = await axios.post(
-                "https://0bc3-211-213-171-236.ngrok-free.app/convert-text-to-speech/",
+                `${NGROK_URL}/convert-text-to-speech/`,
                 {
                     text: stt_text,
                 },
@@ -236,12 +196,8 @@ const AudioUploadRecording = ({ route }) => {
                     headers: { "Content-Type": "application/json" }, // JSON 형식 지정
                 }
             );
-            console.log("response.data", response);
             const { audio_file_name } = response.data;
             setAudioFileName(audio_file_name);
-            console.log("Audio file name set:", audio_file_name);
-            console.log("setAudioFileName", setAudioFileName);
-            console.log("audioFileName", audioFileName);
         } catch (error) {
             console.error("Error playing TTS:", error);
         }
@@ -261,11 +217,7 @@ const AudioUploadRecording = ({ route }) => {
                 return;
             }
 
-            // const audioUri = `https://your-server-url.com/voice_clones/${filename}`;
-            const audioUri = `https://0bc3-211-213-171-236.ngrok-free.app/get-voice-audio/${audioFileName}`;
-            // const audioUri = `../../../../backend/voice_files/${audioFileName}`;
-            // console.log(audio_file_name);
-            console.log(audioUri);
+            const audioUri = `${NGROK_URL}/get-voice-audio/${audioFileName}`;
 
             // 새로운 사운드 객체 생성 및 오디오 파일 로드
             const { sound } = await Audio.Sound.createAsync(
@@ -275,7 +227,6 @@ const AudioUploadRecording = ({ route }) => {
             console.log("오디오 재생 시작");
             setSound(sound);
             await sound.playAsync();
-            // await sound.setVolumeAsync(1.0);
             
 
             // 재생 상태 업데이트 (재생이 끝났을 때 해제)
@@ -850,6 +801,9 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderTopWidth: 1,
         borderTopColor: "#f0f0f0",
+        position: "absolute", // 화면 하단에 고정
+        bottom: 60, // 네비게이션 바 위로 이동
+        width: "100%", // 전체 화면 너비 차지
     },
     languageButton: {
         flexDirection: "row",

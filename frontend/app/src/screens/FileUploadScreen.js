@@ -54,14 +54,9 @@ const FileUploadScreen = ({ route }) => {
                     uri: file.uri,
                 }));
 
-                // const fileUri =
-                //     Platform.OS === "ios"
-                //         ? newFiles.uri.replace("file://", "")
-                //         : newFiles.uri;
 
                 setUploadedFiles((prevFiles) => [...prevFiles, ...newFiles]);
 
-                // setUploadedFiles([...uploadedFiles, newFile]);
                 Alert.alert("Success", "File uploaded successfully!");
                 console.log("newFiles", newFiles);
             } else if (result.canceled) {
@@ -74,11 +69,8 @@ const FileUploadScreen = ({ route }) => {
 
     const handleDeleteFile = (index) => {
         const newFiles = [...uploadedFiles];
-        // const newSelectedFiles = [...selectedFiles];
         newFiles.splice(index, 1);
-        // newSelectedFiles.splice(index, 1);
         setUploadedFiles(newFiles);
-        // setSelectedFiles(newSelectedFiles);
         setActiveDeleteIndex(null);
     };
 
@@ -108,8 +100,7 @@ const FileUploadScreen = ({ route }) => {
                 try {
                     // API 요청으로 파일 업로드 및 벡터화 시작
                     const response = await axios.post(
-                        // `${NGROK_URL}/upload-rag-document`,
-                        "http://43.202.122.20/upload-rag-document",
+                        `${NGROK_URL}/upload-rag-document`,
                         formData,
                         {
                             headers: {

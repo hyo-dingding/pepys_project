@@ -424,3 +424,11 @@ gradle-app.setting
 
 
 uploaded_files/
+
+upload_voice
+voice_files
+running_rag
+
+GoogleService-Info.plist
+
+voice_files

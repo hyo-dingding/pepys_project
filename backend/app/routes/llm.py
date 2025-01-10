@@ -49,3 +49,4 @@ async def get_summary(stt_text: str, language: str):
     summary = await summary_chain.ainvoke({"text": stt_text, "language": language})
     print("***** Summary *****", summary)
     return {"summary": summary}
+

@@ -7,6 +7,7 @@ from config.db import conn
 import random
 from uuid import uuid4
 
+
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 audio = APIRouter()
@@ -34,49 +35,15 @@ async def process_audio_complete(file: UploadFile, room_code: str):
                 print(f"Error saving file: {e}")
                 raise e
 
-        # STT 변환 실행
-        # stt_result = await perform_stt(file_location)
         try:
             # STT 및 언어 감지 실행
             stt_result, detected_language = await perform_stt(file_location)
-            # stt_result = await perform_stt(file_location)
         except Exception as e:
             print(f"Error performing STT: {e}")
             raise e
 
         # 3. 요약 생성
         try:
-            ### 1차시도
-            # summary = await get_summary(stt_result)
-            # print("summary", summary)
-
-            #### 2차 시도
-            # summary_result = await get_summary(stt_result)
-            # original_summary = summary_result["original_summary"]
-            # translated_summaries = summary_result["translated_summaries"]
-
-            # print("summary_result", summary_result)
-            # print("original_summary",original_summary )
-            # print("translated_summaries",translated_summaries )
-
-            # # MongoDB에 각 언어의 요약 결과 저장
-            # for language_code, translated_summary in translated_summaries.items():
-            #     document = {
-            #         "room_code": room_code,
-            #         "stt_text": stt_result,
-            #         "summary": translated_summary,
-            #         "language": language_code,
-            #     }
-            #     conn.audio.audio_file.insert_one(document)
-
-            # return {
-            #     "stt_text": stt_result,
-            #     "original_summary": original_summary,
-            #     "translated_summaries": translated_summaries,
-            #     "room_code": room_code,
-            # }
-
-            ### 3차 시도
             # 감지된 언어를 바탕으로 메인 요약 생성
             main_summary = await get_summary(stt_result, detected_language)
             summaries = {detected_language: main_summary["summary"]}
@@ -113,18 +80,6 @@ async def process_audio_complete(file: UploadFile, room_code: str):
             print(f"Error generating summary or translation: {e}")
             raise e
 
-    #     # 4. MongoDB에 저장
-    #     document = {"room_code": room_code, "stt_text": stt_result, "summary": summary}
-    #     conn.audio.audio_file.insert_one(document)
-
-    #     # # 5. 임시 파일 삭제
-    #     # if os.path.exists(file_location):
-    #     #     os.remove(file_location)
-
-    #     print("document", document)
-
-    #     return { "room_code": room_code, "stt_text": stt_result, "summary": summary }
-
     except Exception as e:
         if file_location and os.path.exists(file_location):
             os.remove(file_location)
@@ -135,9 +90,7 @@ async def process_audio_complete(file: UploadFile, room_code: str):
 async def upload_audio_complete(file: UploadFile = File(...)):
     try:
         room_code = generate_room_code()
-        print("room_code", room_code)
         result = await process_audio_complete(file, room_code)
-        print("result", result)
 
         return {
             "status": "success",
@@ -172,7 +125,6 @@ async def get_results(room_code: str, language: str):
 
 # STT 처리 함수 (faster_whisper 사용)
 async def perform_stt(audio_path):
-    print("stt 만들자")
     model = WhisperModel("base", device="cpu", compute_type="float32")
     segments, info = model.transcribe(audio_path)
 
@@ -193,13 +145,13 @@ import requests
 from pydantic import BaseModel
 from fastapi.responses import FileResponse
 
-XI_API_KEY = "sk_1b0970adb930d54f738f8aba5fa9512d7d750e3e3a55e5d5"
-# VOICE_ID = "33wwLTSswLCmQWPlV0VR" #엘로
-VOICE_ID = "ig6LOeuRch52WndhV80W"  # 하우스
+XI_API_KEY = os.getenv("XI_API_KEY")
+
+VOICE_ID = os.getenv("VOICE_ID")
 
 
 # 클로닝된 오디오 파일을 저장할 폴더
-VOICE_FILE_PATH = "../../frontend/assets/audio"
+VOICE_FILE_PATH = "./upload_voice"
 
 
 class TTSRequest(BaseModel):
@@ -230,7 +182,6 @@ async def convert_text_to_speech(
         },
     }
     response = requests.post(tts_url, headers=headers, json=data, stream=True)
-    print("response보이스 클론", response)
 
     if response.status_code == 200:
         audio_file_name = f"{uuid4()}.mp3"
@@ -244,15 +195,6 @@ async def convert_text_to_speech(
 
     else:
         raise HTTPException(status_code=response.status_code, detail=response.text)
-
-
-# @audio.post("/generate-and-store-audio/")
-# async def generate_and_store_audio(text: TTSRequest):
-#     print("클로닝 요청 text", text)
-#     # 백그라운드 작업으로 음성 파일 생성
-#     audio_file_name = convert_text_to_speech(text)
-#     # audio_file_url = f"/get-voice-audio/{audio_file_name}"
-#     return {"audio_file_name": audio_file_name}
 
 
 @audio.get("/get-voice-audio/{filename}")
