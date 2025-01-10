@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,9 +9,47 @@ import {
   ScrollView,
   Platform,
   StatusBar,
+  Alert, // 추가
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { launchImageLibrary } from "react-native-image-picker";
+import * as ImagePicker from "expo-image-picker"; // expo-image-picker로 변경
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import { NGROK_URL } from "@env";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { initializeApp, getApp } from "firebase/app";
+import {
+  FIREBASE_API_KEY,
+  FIREBASE_AUTH_DOMAIN,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_STORAGE_BUCKET,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_APP_ID,
+} from "@env";
+
+const firebaseConfig = {
+  apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
+};
+
+// Firebase 초기화
+let app;
+let storage;
+
+try {
+  app = getApp();
+} catch (error) {
+  app = initializeApp(firebaseConfig);
+}
+
+// Storage 초기화
+storage = getStorage(app);
+console.log("Storage initialized:", storage ? "Success" : "Failed");
 
 const Profile = () => {
   const [profileData, setProfileData] = useState({
@@ -25,25 +63,266 @@ const Profile = () => {
     interests: [],
   });
 
+  const navigation = useNavigation();
+
+  // loadProfileData 함수 추가
+  const loadProfileData = async () => {
+    try {
+      // 저장된 토큰 가져오기
+      const token = await AsyncStorage.getItem("access_token");
+      if (!token) {
+        console.log("No token found");
+        navigation.navigate("Welcome");
+        return;
+      }
+
+      // 이메일 가져오기 - AsyncStorage에 저장된 이메일 사용
+      const userEmail = await AsyncStorage.getItem("user_email");
+      if (!userEmail) {
+        console.log("No email found");
+        return;
+      }
+
+      console.log("Fetching user data for email:", userEmail);
+
+      // 사용자 정보 가져오기
+      const response = await axios.get(`${NGROK_URL}/find-id/${userEmail}`);
+      console.log("API Response:", response.data); // 실제 응답 데이터 확인
+
+      const userData = response.data;
+
+      if (!userData || !userData.email) {
+        throw new Error("Invalid user data received");
+      }
+
+      // 프로필 데이터 업데이트
+      setProfileData((prev) => ({
+        ...prev,
+        name: userData.name || "",
+        email: userData.email || "",
+        nationality: userData.nationality || "",
+        work_title: userData.work_title || "",
+        photo: prev.photo || null,
+        bio: prev.bio || "",
+        location: prev.location || "",
+        connections: prev.connections || "0",
+        meetings: prev.meetings || "0",
+        interests: prev.interests || [],
+      }));
+
+      console.log("Profile data loaded:", userData); // 데이터 확인용 로그
+    } catch (error) {
+      console.error("Error loading profile data:", error);
+      if (error.response) {
+        console.error("Error response:", error.response.data);
+      }
+      Alert.alert("Error", "Failed to load profile data. Please try again.");
+    }
+  };
+
+  // useEffect 추가
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  // 로그아웃 함수
+  const handleSignOut = async () => {
+    try {
+      // AsyncStorage에서 토큰 삭제
+      await AsyncStorage.removeItem("access_token");
+
+      // 삭제 후 토큰 확인
+      const token = await AsyncStorage.getItem("access_token");
+      if (!token) {
+        console.log("Token successfully deleted"); // 토큰이 없으면 성공적으로 삭제된 것
+      } else {
+        console.log("Token still exists:", token); // 토큰이 남아있다면 삭제 실패
+      }
+
+      // 로그아웃 후 WelcomeScreen으로 이동
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Welcome" }],
+      });
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
+  };
+
   const [isEditing, setIsEditing] = useState(false);
 
   const handlePhotoSelect = async () => {
-    const options = {
-      mediaType: "photo",
-      quality: 1,
-    };
-
     try {
-      const result = await launchImageLibrary(options);
-      if (result.assets?.[0]?.uri) {
-        setProfileData((prev) => ({
-          ...prev,
-          photo: result.assets[0].uri,
-        }));
+      // 권한 요청
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permissionResult.granted) {
+        console.log("Permission to access media library denied");
+        Alert.alert(
+          "Permission Required",
+          "Please allow access to your photo library to select images."
+        );
+        return;
+      }
+
+      // 이미지 선택기 실행
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      console.log("Image picker result:", result);
+
+      if (!result.canceled) {
+        console.log("Selected image URI:", result.assets[0].uri);
+        await uploadImageToFirebase(result.assets[0]);
+      } else {
+        console.log("Image selection cancelled");
       }
     } catch (error) {
       console.log("Error selecting photo:", error);
+      Alert.alert("Error", "Failed to select photo: " + error.message);
     }
+  };
+
+  const uploadImageToFirebase = async (imageAsset) => {
+    let blob;
+    try {
+      if (!storage) {
+        throw new Error("Storage not initialized");
+      }
+
+      console.log("Starting image upload process...");
+
+      // URI를 blob으로 변환
+      const response = await fetch(imageAsset.uri);
+      blob = await response.blob();
+      console.log("Image converted to blob:", {
+        size: blob.size,
+        type: blob.type,
+      });
+
+      // 파일 이름 생성
+      const extension = imageAsset.uri.split(".").pop();
+      const filename = `profile_${Platform.OS}_${Date.now()}.${extension}`;
+      console.log("Generated filename:", filename);
+
+      // Storage 참조 생성 (web SDK 방식)
+      const storageRef = ref(storage, `profile_images/${filename}`);
+      console.log("Storage reference created");
+
+      // 이미지 업로드
+      const uploadTask = await uploadBytes(storageRef, blob);
+      console.log("Upload successful:", uploadTask.metadata);
+
+      // 다운로드 URL 가져오기
+      const downloadURL = await getDownloadURL(uploadTask.ref);
+      console.log("Download URL:", downloadURL);
+
+      // 프로필 데이터 업데이트
+      setProfileData((prev) => ({
+        ...prev,
+        photo: downloadURL,
+      }));
+
+      Alert.alert("Success", "Image uploaded successfully");
+    } catch (error) {
+      console.error("Firebase upload error:", {
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+        storageAvailable: !!storage,
+      });
+
+      Alert.alert("Upload Error", `Failed to upload image: ${error.message}`);
+    } finally {
+      if (blob) {
+        blob = null;
+      }
+    }
+  };
+
+  // 계정 삭제 확인 함수 추가
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to delete your account? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: () => {
+            // 두 번째 확인 단계
+            Alert.alert(
+              "Final Confirmation",
+              "Please type 'DELETE' to confirm account deletion",
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+                {
+                  text: "Confirm",
+                  onPress: async () => {
+                    try {
+                      // 저장된 이메일 가져오기
+                      const userEmail = profileData.email;
+
+                      if (!userEmail) {
+                        Alert.alert("Error", "User email not found");
+                        return;
+                      }
+
+                      // 계정 삭제 API 호출
+                      const response = await axios.delete(
+                        `${NGROK_URL}/user/${userEmail}`
+                      );
+
+                      if (response.data.msg === "User deleted successfully") {
+                        // 성공적으로 삭제된 경우
+                        await AsyncStorage.removeItem("access_token"); // 토큰 삭제
+
+                        Alert.alert(
+                          "Success",
+                          "Your account has been successfully deleted",
+                          [
+                            {
+                              text: "OK",
+                              onPress: () => {
+                                // Welcome 화면으로 이동
+                                navigation.reset({
+                                  index: 0,
+                                  routes: [{ name: "Welcome" }],
+                                });
+                              },
+                            },
+                          ]
+                        );
+                      }
+                    } catch (error) {
+                      console.error("Delete account error:", error);
+                      Alert.alert(
+                        "Error",
+                        error.response?.data?.detail ||
+                          "Failed to delete account. Please try again."
+                      );
+                    }
+                  },
+                  style: "destructive",
+                },
+              ]
+            );
+          },
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   return (
@@ -61,7 +340,16 @@ const Profile = () => {
             style={styles.photoContainer}
           >
             {profileData.photo ? (
-              <Image source={{ uri: profileData.photo }} style={styles.photo} />
+              <Image
+                source={{ uri: profileData.photo }}
+                style={styles.photo}
+                onError={(error) => {
+                  console.error(
+                    "Image loading error:",
+                    error.nativeEvent.error
+                  );
+                }}
+              />
             ) : (
               <View style={styles.photoPlaceholder}>
                 <MaterialIcons name="person" size={40} color="#6A9C89" />
@@ -152,9 +440,20 @@ const Profile = () => {
             <Text style={styles.buttonText}>Edit Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.editButton, styles.signOutButton]}>
+          <TouchableOpacity
+            style={[styles.editButton, styles.signOutButton]}
+            onPress={handleSignOut}
+          >
             <MaterialIcons name="logout" size={20} color="#FFF" />
             <Text style={styles.buttonText}>Sign Out</Text>
+          </TouchableOpacity>
+          {/* 계정 삭제 버튼 추가 */}
+          <TouchableOpacity
+            style={[styles.editButton, styles.deleteButton]}
+            onPress={handleDeleteAccount}
+          >
+            <MaterialIcons name="delete-forever" size={20} color="#FFF" />
+            <Text style={styles.buttonText}>Delete Account</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -343,6 +642,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+  },
+  deleteButton: {
+    backgroundColor: "#DC3545", // 위험을 나타내는 빨간색
+    marginTop: 8, // 다른 버튼들과 약간의 간격
   },
 });
 

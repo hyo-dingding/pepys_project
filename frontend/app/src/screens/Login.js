@@ -12,21 +12,49 @@ import {
   Dimensions,
   Animated,
   PanResponder,
+  Alert,
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { NGROK_URL } from "@env";
 
 const { height } = Dimensions.get("window");
 
+// 비밀번호 재설정 단계를 정의하는 상수
+const RESET_STEPS = {
+  EMAIL: "email", // 이메일 입력 단계
+  VERIFY: "verify", // 인증코드 확인 단계
+  RESET: "reset", // 새 비밀번호 설정 단계
+};
+
 const ForgotPasswordModal = ({ visible, onClose }) => {
+  // 상태 관리
+  const [currentStep, setCurrentStep] = useState(RESET_STEPS.EMAIL);
   const [email, setEmail] = useState("");
   const [isEmailSent, setIsEmailSent] = useState(false);
 
-  const handleSubmit = () => {
-    setIsEmailSent(true);
-    setTimeout(() => {
-      setIsEmailSent(false);
-      onClose();
-    }, 3000);
+  const handleForgotPassword = async () => {
+    try {
+      const response = await axios.post(`${NGROK_URL}/forgot-password`, {
+        email,
+      });
+
+      if (response.status === 200) {
+        setIsEmailSent(true);
+        Alert.alert("Success", "A reset code has been sent to your email.", [
+          { text: "OK", onPress: onClose },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error during forgot password:", error);
+
+      if (error.response && error.response.status === 404) {
+        Alert.alert("Error", "User not found with this email.");
+      } else {
+        Alert.alert("Error", "Failed to send reset code. Please try again.");
+      }
+    }
   };
 
   return (
@@ -51,7 +79,7 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
                   <MaterialIcons name="close" size={24} color="#666" />
                 </TouchableOpacity>
 
-                {!isEmailSent ? (
+                {currentStep === RESET_STEPS.EMAIL && (
                   <>
                     <View style={styles.forgotPasswordHeader}>
                       <MaterialIcons
@@ -63,8 +91,8 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
                         Forgot Password?
                       </Text>
                       <Text style={styles.forgotPasswordSubtitle}>
-                        Enter your email address and we'll send you instructions
-                        to reset your password.
+                        Enter your email address and we'll send you verification
+                        code.
                       </Text>
                     </View>
 
@@ -72,8 +100,8 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
                       <MaterialIcons name="email" size={20} color="#6A9C89" />
                       <TextInput
                         style={styles.forgotPasswordInput}
-                        placeholder="Enter your email"
-                        placeholderTextColor="#CD5C08"
+                        placeholder="Email Address"
+                        placeholderTextColor="#999"
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -83,25 +111,123 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
 
                     <TouchableOpacity
                       style={styles.forgotPasswordButton}
-                      onPress={handleSubmit}
+                      onPress={handleForgotPassword}
                     >
                       <Text style={styles.forgotPasswordButtonText}>
-                        Send Reset Link
+                        Send Code
                       </Text>
                     </TouchableOpacity>
                   </>
-                ) : (
-                  <View style={styles.successMessage}>
-                    <MaterialIcons
-                      name="check-circle"
-                      size={50}
-                      color="#6A9C89"
-                    />
-                    <Text style={styles.successTitle}>Email Sent!</Text>
-                    <Text style={styles.successText}>
-                      Please check your email for password reset instructions.
-                    </Text>
-                  </View>
+                )}
+
+                {currentStep === RESET_STEPS.VERIFY && (
+                  <>
+                    <View style={styles.forgotPasswordHeader}>
+                      <MaterialIcons
+                        name="verified-user"
+                        size={50}
+                        color="#6A9C89"
+                      />
+                      <Text style={styles.forgotPasswordTitle}>Enter Code</Text>
+                      <Text style={styles.forgotPasswordSubtitle}>
+                        Please enter the 6-digit verification code sent to your
+                        email.
+                      </Text>
+                      <Text
+                        style={[styles.forgotPasswordSubtitle, styles.timer]}
+                      >
+                        Time Remaining: {formatTime(timer)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.codeInputContainer}>
+                      {Array(6)
+                        .fill(0)
+                        .map((_, index) => (
+                          <TextInput
+                            key={index}
+                            ref={codeInputs[index]}
+                            style={styles.codeInput}
+                            maxLength={1}
+                            keyboardType="number-pad"
+                            onChangeText={(value) => {
+                              const newCode = verificationCode.split("");
+                              newCode[index] = value;
+                              setVerificationCode(newCode.join(""));
+
+                              if (value && index < 5) {
+                                codeInputs[index + 1].current.focus();
+                              }
+                            }}
+                            value={verificationCode[index] || ""}
+                          />
+                        ))}
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.resendButton}
+                      onPress={handleResendCode}
+                    >
+                      <Text style={styles.forgotPasswordButtonText}>
+                        Resend Code
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.forgotPasswordButton}
+                      onPress={handleVerifyCode}
+                    >
+                      <Text style={styles.forgotPasswordButtonText}>
+                        Verify
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+                {currentStep === RESET_STEPS.RESET && (
+                  <>
+                    <View style={styles.forgotPasswordHeader}>
+                      <MaterialIcons name="lock" size={50} color="#6A9C89" />
+                      <Text style={styles.forgotPasswordTitle}>
+                        Reset Password
+                      </Text>
+                      <Text style={styles.forgotPasswordSubtitle}>
+                        Please enter your new password.
+                      </Text>
+                    </View>
+
+                    <View style={styles.forgotPasswordInputWrapper}>
+                      <MaterialIcons name="lock" size={20} color="#6A9C89" />
+                      <TextInput
+                        style={styles.forgotPasswordInput}
+                        placeholder="New Password"
+                        placeholderTextColor="#999"
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                        secureTextEntry
+                      />
+                    </View>
+
+                    <View style={styles.forgotPasswordInputWrapper}>
+                      <MaterialIcons name="lock" size={20} color="#6A9C89" />
+                      <TextInput
+                        style={styles.forgotPasswordInput}
+                        placeholder="Confirm Password"
+                        placeholderTextColor="#999"
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry
+                      />
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.forgotPasswordButton}
+                      onPress={handleResetPassword}
+                    >
+                      <Text style={styles.forgotPasswordButtonText}>
+                        Change Password
+                      </Text>
+                    </TouchableOpacity>
+                  </>
                 )}
               </View>
             </TouchableWithoutFeedback>
@@ -111,8 +237,10 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
     </Modal>
   );
 };
-
 const LoginModal = ({ visible, onClose, navigation }) => {
+  const [email, setEmail] = useState(""); // 이메일 입력 상태
+  const [password, setPassword] = useState(""); // 비밀번호 입력 상태
+
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const panY = useRef(new Animated.Value(0)).current;
 
@@ -145,9 +273,52 @@ const LoginModal = ({ visible, onClose, navigation }) => {
     })
   ).current;
 
-  const handleLogin = () => {
-    navigation.navigate("MainTabs", { screen: "RoomSetup" });
-    onClose();
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post(
+        `${NGROK_URL}/auth/login`, // 정확한 ngrok URL과 경로 사용
+        {
+          email, // 사용자 입력값
+          password, // 사용자 입력값
+        }
+      );
+
+      if (response.status === 200) {
+        const { access_token } = response.data;
+        console.log("Login successful, token:", access_token);
+        // 토큰저장
+        await AsyncStorage.setItem("access_token", access_token);
+        await AsyncStorage.setItem("user_email", email);
+
+        // 로그인 성공 처리, 토큰 저장 등
+        navigation.navigate("MainTabs", { screen: "RoomSetup" });
+      } else {
+        console.error("Login failed", response.status);
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+
+      if (error.response) {
+        if (error.response.status === 401) {
+          Alert.alert(
+            "Error",
+            "Invalid credentials. Please check your email or password."
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            "An error occurred during login. Please try again."
+          );
+        }
+      } else if (error.request) {
+        Alert.alert(
+          "Error",
+          "Failed to connect to server. Please check your network connection."
+        );
+      } else {
+        Alert.alert("Error", "An error occurred while setting up the request.");
+      }
+    }
   };
 
   const translateY = panY.interpolate({
@@ -203,6 +374,8 @@ const LoginModal = ({ visible, onClose, navigation }) => {
                         placeholderTextColor="#CD5C08"
                         autoCapitalize="none"
                         keyboardType="email-address"
+                        value={email}
+                        onChangeText={setEmail}
                       />
                     </View>
 
@@ -213,6 +386,8 @@ const LoginModal = ({ visible, onClose, navigation }) => {
                         placeholder="Password"
                         placeholderTextColor="#CD5C08"
                         secureTextEntry
+                        value={password}
+                        onChangeText={setPassword}
                       />
                     </View>
 
@@ -242,6 +417,20 @@ const LoginModal = ({ visible, onClose, navigation }) => {
                       <FontAwesome5 name="google" size={20} color="#444" />
                       <Text style={styles.googleButtonText}>
                         Sign in with Google
+                      </Text>
+                    </TouchableOpacity>
+                    {/* 애플 로그인 버튼 수정 */}
+                    <TouchableOpacity
+                      style={[styles.googleButton, styles.appleButton]}
+                    >
+                      <FontAwesome5 name="apple" size={20} color="#666" />
+                      <Text
+                        style={[
+                          styles.googleButtonText,
+                          styles.appleButtonText,
+                        ]}
+                      >
+                        Sign in with Apple
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -478,6 +667,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     textAlign: "center",
+  },
+  codeInputContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginVertical: 20,
+    paddingHorizontal: 20,
+  },
+  codeInput: {
+    width: 40,
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+    borderRadius: 8,
+    textAlign: "center",
+    fontSize: 18,
+    backgroundColor: "#f8f9fa",
+  },
+  timer: {
+    color: "#CD5C08",
+    marginTop: 10,
+  },
+  resendButton: {
+    marginVertical: 15,
+  },
+  appleButton: {
+    marginTop: 12,
+    backgroundColor: "#fff",
+    borderColor: "#e9ecef",
+  },
+  appleButtonText: {
+    color: "#444",
   },
 });
 

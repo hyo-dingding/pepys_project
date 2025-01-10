@@ -163,28 +163,28 @@ model_size = "small"  # 모델 크기 설정
 model = WhisperModel(model_size, device="cpu", compute_type="int8")
 
 
-# 번역 함수
-def translate_text(text, target_language):
-    try:
-        translator = Translator(from_lang="en", to_lang=target_language)
-        return translator.translate(text)
-    except Exception as e:
-        print(f"번역 오류: {e}")
-        return None
+# # 번역 함수
+# def translate_text(text, target_language):
+#     try:
+#         translator = Translator(from_lang="en", to_lang=target_language)
+#         return translator.translate(text)
+#     except Exception as e:
+#         print(f"번역 오류: {e}")
+#         return None
 
 
-# 음성 합성 함수
-def synthesize_speech(text, language):
-    try:
-        # 텍스트를 음성으로 변환 후 임시 파일에 저장
-        tts = gTTS(text=text, lang=language, slow=False)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
-            temp_path = f.name
-            tts.save(temp_path)
-        return temp_path
-    except Exception as e:
-        print(f"음성 합성 오류: {e}")
-        return None
+# # 음성 합성 함수
+# def synthesize_speech(text, language):
+#     try:
+#         # 텍스트를 음성으로 변환 후 임시 파일에 저장
+#         tts = gTTS(text=text, lang=language, slow=False)
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
+#             temp_path = f.name
+#             tts.save(temp_path)
+#         return temp_path
+#     except Exception as e:
+#         print(f"음성 합성 오류: {e}")
+#         return None
 
 
 # WebSocket 엔드포인트
