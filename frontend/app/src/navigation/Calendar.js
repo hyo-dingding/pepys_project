@@ -12,6 +12,9 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { NGROK_URL } from "@env";
 
 // 달력에 필요한 상수 정의
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -53,11 +56,55 @@ const Calendar = () => {
     time: "",
     category: "default",
   });
+
   useEffect(() => {
-    if (!global.calendarEvents) {
-      global.calendarEvents = {};
-    }
-    setEvents(global.calendarEvents);
+    const fetchUserData = async () => {
+      try {
+        // 토큰을 AsyncStorage에서 가져오기
+        const token = await AsyncStorage.getItem("access_token");
+        console.log("Fetched token before events request:", token);
+
+        if (!token) {
+          console.error("No token found");
+          return;
+        }
+
+        // 사용자의 데이터 가져오기 (현재 사용자 정보 포함)
+        const response = await axios.get(`${NGROK_URL}/auth/my-data`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        // 응답 데이터의 구조 확인
+        console.log("Response data:", response.data);
+
+        if (response.status === 200 && response.data) {
+          const userData = response.data;
+
+          // 사용자 데이터에서 이벤트 추출
+          const uploadedEvents = userData.uploaded_data || [];
+
+          // 이벤트 상태 설정
+          setEvents(
+            uploadedEvents.reduce((acc, event) => {
+              const dateKey = `${event.year}-${event.month}-${event.day}`;
+              if (!acc[dateKey]) {
+                acc[dateKey] = [];
+              }
+              acc[dateKey].push(event);
+              return acc;
+            }, {})
+          );
+        } else {
+          console.error("Failed to fetch user data", response.status);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
   }, []);
   // 해당 월의 총 일수를 계산하는 함수
   const getDaysInMonth = useCallback((month, year) => {
@@ -75,13 +122,54 @@ const Calendar = () => {
     const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
     const days = [];
 
-    const addEvent = (event) => {
-      const dateKey = `${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`;
+    const addEvent = async (event) => {
+      try {
+        // 토큰을 가져오기
+        const token = await AsyncStorage.getItem("access_token");
+        console.log("Fetched token for uploading event:", token);
 
-      global.calendarEvents = {
-        ...global.calendarEvents,
-        [dateKey]: [...(global.calendarEvents?.[dateKey] || []), newEventData],
-      };
+        if (!token) {
+          console.error("No token found");
+          return;
+        }
+
+        // 백엔드에 전송할 이벤트 데이터 형식을 확인
+        console.log("Event to be uploaded:", event);
+
+        // 이벤트 데이터를 서버로 전송
+        const response = await axios.post(
+          `${NGROK_URL}/auth/upload-data`,
+          event,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.status === 200) {
+          console.log("Event upload success:", response.data);
+
+          // 이벤트가 서버에 성공적으로 저장된 경우, 로컬 상태 업데이트
+          const dateKey = `${event.year}-${event.month}-${event.day}`;
+          const newEventData = { ...event, id: response.data.id || Date.now() };
+          const updatedEvents = {
+            ...events,
+            [dateKey]: [...(events[dateKey] || []), newEventData],
+          };
+
+          // 상태 업데이트
+          setEvents(updatedEvents);
+        } else {
+          console.error(
+            "Failed to upload event",
+            response.status,
+            response.data
+          );
+        }
+      } catch (error) {
+        console.error("Error uploading event:", error);
+      }
     };
 
     // 이전 달의 날짜 추가
@@ -159,24 +247,58 @@ const Calendar = () => {
   }, [currentMonth]);
 
   // 이벤트 관리 함수들
-  const handleAddEvent = useCallback(() => {
+  const handleAddEvent = useCallback(async () => {
     if (newEvent.title.trim()) {
-      const dateKey = `${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`;
-      const newEventData = { ...newEvent, id: Date.now() };
-      const updatedEvents = {
-        ...events,
-        [dateKey]: [...(events[dateKey] || []), newEventData],
-      };
-      setEvents(updatedEvents);
-      global.calendarEvents = updatedEvents;
+      try {
+        // 토큰을 가져오기
+        const token = await AsyncStorage.getItem("access_token");
+        if (!token) {
+          console.error("No token found");
+          return;
+        }
 
-      setNewEvent({
-        title: "",
-        description: "",
-        time: "",
-        category: "default",
-      });
-      setShowAddEventModal(false);
+        // 이벤트 데이터를 서버로 전송
+        const response = await axios.post(
+          `${NGROK_URL}/auth/upload-data`,
+          newEvent,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.status === 200) {
+          console.log("Event upload success:", response.data);
+
+          // 로컬 상태에 이벤트 추가 (옵션)
+          const dateKey = `${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`;
+          const newEventData = { ...newEvent, id: Date.now() };
+          const updatedEvents = {
+            ...events,
+            [dateKey]: [...(events[dateKey] || []), newEventData],
+          };
+          setEvents(updatedEvents);
+
+          // 글로벌 이벤트 업데이트 (필요시)
+          global.calendarEvents = updatedEvents;
+
+          // 입력 필드를 초기화
+          setNewEvent({
+            title: "",
+            description: "",
+            time: "",
+            category: "default",
+          });
+
+          // 모달 닫기
+          setShowAddEventModal(false);
+        } else {
+          console.error("Failed to upload event", response.status);
+        }
+      } catch (error) {
+        console.error("Error uploading event:", error);
+      }
     }
   }, [newEvent, selectedDate, events]);
 

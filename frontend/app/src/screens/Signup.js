@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { Keyboard } from "react-native";
 import axios from "axios";
+import { NGROK_URL } from "@env";
 
 const nationalities = [
   "United States",

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,9 +12,16 @@ import {
   Alert, // 추가
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { launchImageLibrary } from "react-native-image-picker";
+import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getAuth } from "firebase/auth";
+import firebaseApp from "../../utils/firebaseConfig";
+import { auth, firestore } from "../../utils/firebaseConfig";
+import axios from "axios";
+import { NGROK_URL } from "@env";
 
 const Profile = () => {
   const [profileData, setProfileData] = useState({
@@ -27,23 +34,137 @@ const Profile = () => {
     meetings: "0",
     interests: [],
   });
-  // 로그아웃 함수
   const navigation = useNavigation();
+
+  // Firestore에 프로필 데이터를 저장하는 함수
+  const saveUserProfile = async () => {
+    console.log("Edit Profile button pressed");
+    const userToken = await AsyncStorage.getItem("access_token");
+
+    if (userToken) {
+      try {
+        const response = await axios.get(`${NGROK_URL}/auth/users/me`, {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        });
+
+        const userInfo = response.data;
+
+        await setDoc(doc(firestore, "users", userInfo.id), {
+          photoURL: profileData.photo,
+          name: profileData.name,
+          email: profileData.email,
+          bio: profileData.bio,
+          location: profileData.location,
+          connections: profileData.connections,
+          meetings: profileData.meetings,
+          interests: profileData.interests,
+        });
+
+        console.log("Profile updated in Firestore");
+        Alert.alert("Success", "Profile updated successfully!");
+      } catch (error) {
+        console.error("Error saving user profile:", error);
+        Alert.alert("Error", "Failed to save profile. Please try again.");
+      }
+    } else {
+      console.log("사용자가 로그인되지 않았습니다.");
+    }
+  };
+
+  // Firestore에서 사용자 프로필 가져오는 함수
+  const fetchUserProfile = async () => {
+    const userToken = await AsyncStorage.getItem("access_token");
+
+    if (userToken) {
+      const userInfo = JSON.parse(await AsyncStorage.getItem("user_info"));
+
+      if (userInfo) {
+        setProfileData({
+          photo: userInfo.photoURL,
+          name: userInfo.name,
+          email: userInfo.email,
+          bio: userInfo.bio || "",
+          location: userInfo.location || "",
+          connections: userInfo.connections || "0",
+          meetings: userInfo.meetings || "0",
+          interests: userInfo.interests || [],
+        });
+      } else {
+        console.log("사용자 정보가 없습니다.");
+      }
+    } else {
+      console.log("사용자가 로그인되지 않았습니다.");
+    }
+  };
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const handlePhotoSelect = async () => {
+    const userToken = await AsyncStorage.getItem("access_token");
+    if (!userToken) {
+      console.log("사용자가 로그인되지 않았습니다.");
+      return;
+    }
+    // 사진 접근 권한 요청
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      alert("카메라 롤에 접근하기 위한 권한이 필요합니다!");
+      return;
+    }
+
+    // 이미지 선택
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const imageUri = result.assets[0].uri;
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+
+      // Firebase Storage에 이미지 업로드
+      const storage = getStorage();
+      const storageRef = ref(storage, `user-images/${userToken}.jpg`); // userToken을 사용하여 파일명 생성
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // MongoDB에 업로드된 이미지 URL 업데이트
+      await updateUserInMongoDB(userToken, downloadURL);
+      // `profileData.photo`에 새 이미지 URL 반영
+      setProfileData((prev) => ({
+        ...prev,
+        photo: downloadURL,
+      }));
+    }
+  };
+
+  const updateUserInMongoDB = async (token, photoURL) => {
+    try {
+      const response = await axios.post(
+        `${NGROK_URL}/auth/users/${token}/photo`, // userId 대신 토큰을 활용하여 서버에서 userId를 찾도록 설정
+        { photoURL },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log("MongoDB updated successfully", response.data);
+    } catch (error) {
+      console.error("Error updating MongoDB:", error);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
-      // AsyncStorage에서 토큰 삭제
       await AsyncStorage.removeItem("access_token");
-
-      // 삭제 후 토큰 확인
-      const token = await AsyncStorage.getItem("access_token");
-      if (!token) {
-        console.log("Token successfully deleted"); // 토큰이 없으면 성공적으로 삭제된 것
-      } else {
-        console.log("Token still exists:", token); // 토큰이 남아있다면 삭제 실패
-      }
-
-      // 로그아웃 후 WelcomeScreen으로 이동
       navigation.reset({
         index: 0,
         routes: [{ name: "Welcome" }],
@@ -53,26 +174,6 @@ const Profile = () => {
     }
   };
 
-  const [isEditing, setIsEditing] = useState(false);
-
-  const handlePhotoSelect = async () => {
-    const options = {
-      mediaType: "photo",
-      quality: 1,
-    };
-
-    try {
-      const result = await launchImageLibrary(options);
-      if (result.assets?.[0]?.uri) {
-        setProfileData((prev) => ({
-          ...prev,
-          photo: result.assets[0].uri,
-        }));
-      }
-    } catch (error) {
-      console.log("Error selecting photo:", error);
-    }
-  };
   // 계정 삭제 확인 함수 추가
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -221,7 +322,7 @@ const Profile = () => {
 
         {/* Action Buttons */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity style={styles.editButton} onPress={saveUserProfile}>
             <MaterialIcons name="edit" size={20} color="#FFF" />
             <Text style={styles.buttonText}>Edit Profile</Text>
           </TouchableOpacity>
