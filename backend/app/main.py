@@ -1,10 +1,10 @@
 import os
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, Depends ,UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.websockets import WebSocketState
-
+from fastapi.security.api_key import APIKeyHeader
 
 from routes import login
 from routes.randomnum import randomnum
@@ -13,8 +13,10 @@ from routes.user import user
 from routes.audio import audio
 from routes.websocket import ws
 
-
-app = FastAPI()
+auth_header = APIKeyHeader(name="Authorization", auto_error=False)
+app = FastAPI(
+    dependencies=[Depends(auth_header)]
+)
 
 app.include_router(login.router)
 app.include_router(randomnum)

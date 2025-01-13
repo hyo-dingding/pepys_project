@@ -88,12 +88,9 @@ async def create_users(user: User):
         "hashed_password": hashed_password,
         "name": user.name,
         "nationality": user.nationality,
-        "work_title": user.work_title
+        "work_title": user.work_title,
+        "uploaded_data": []
     }
-    
-    # conn.rag_db.user.insert_one(dict(user))
-    # conn.rag_db.user.insert_one(user_data)
-    # return usersEntity(conn.rag_db.user.find())
     # 사용자 정보 삽입
     inserted_user = conn.rag_db.user.insert_one(user_data)
 
