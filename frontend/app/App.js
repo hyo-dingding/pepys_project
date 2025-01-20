@@ -20,7 +20,7 @@ import RealTimeRecording from "./src/screens/RealTimeRecording.js";
 
 
 
-import Recording from "./src/screens/Recording";
+// import Recording from "./src/screens/Recording";
 import AudioUploadScreen from "./src/screens/AudioUploadScreen";
 import SummaryScreen from "./src/screens/SummaryScreen";
 import MeetingDetailScreen from "./src/screens/MeetingDetailScreen";

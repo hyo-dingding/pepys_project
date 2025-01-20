@@ -1,6 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from faster_whisper import WhisperModel
-from deepgram import DeepgramClient, LiveTranscriptionEvents, LiveOptions
+# from deepgram import DeepgramClient, LiveTranscriptionEvents, LiveOptions
 from translate import Translator
 from gtts import gTTS
 import asyncio
@@ -9,8 +9,8 @@ import os
 import json
 
 ws = APIRouter()
-deepgram_key = os.getenv("DEEPGRAM_CLIENT")
-deepgram = DeepgramClient(deepgram_key)
+# deepgram_key = os.getenv("DEEPGRAM_CLIENT")
+# deepgram = DeepgramClient(deepgram_key)
 # Whisper 모델 초기화 (대기 시간 감소)
 model_size = "distil-medium.en"  # 모델 크기 설정
 model = WhisperModel(model_size, device="cpu", compute_type="int8")
