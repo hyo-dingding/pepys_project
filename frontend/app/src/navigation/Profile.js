@@ -28,7 +28,7 @@ import {
   FIREBASE_APP_ID,
 } from "@env";
 
-const NGROK_URL = "https://c3bf-218-148-117-162.ngrok-free.app";
+const NGROK_URL = "https://0269-218-148-117-162.ngrok-free.app";
 
 const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,
