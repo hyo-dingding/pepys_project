@@ -275,6 +275,23 @@ const LoginModal = ({ visible, onClose, navigation }) => {
     })
   ).current;
 
+  // const handleLogin = async () => {
+  //   try {
+  //     // 로그인 성공 처리
+  //     const fakeAccessToken = "dummy_access_token"; // 가짜 토큰 생성
+  //     console.log("Login successful, token:", fakeAccessToken);
+
+  //     // AsyncStorage에 가짜 토큰과 이메일 저장
+  //     await AsyncStorage.setItem("access_token", fakeAccessToken);
+  //     await AsyncStorage.setItem("user_email", email || "guest@example.com");
+
+  //     // 로그인 성공 후 메인 화면으로 이동
+  //     navigation.navigate("MainTabs", { screen: "RoomSetup" });
+  //   } catch (error) {
+  //     console.error("Error during login:", error);
+  //     Alert.alert("Error", "An unexpected error occurred.");
+  //   }
+  // };
   const handleLogin = async () => {
     try {
       const response = await axios.post(
