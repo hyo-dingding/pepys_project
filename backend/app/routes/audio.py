@@ -20,11 +20,13 @@ def generate_room_code():
 
 
 async def process_audio_complete(file: UploadFile, room_code: str):
+    print("process_audio_complete", "file", file, "room_code", room_code)
     """오디오 파일 처리: STT 및 요약 통합 처리"""
     file_location = None
     try:
         # 1. 파일 저장
         save_dir = "../uploaded_files"
+        
         os.makedirs(save_dir, exist_ok=True)
         file_location = os.path.join(save_dir, file.filename)
 
@@ -89,6 +91,7 @@ async def process_audio_complete(file: UploadFile, room_code: str):
 @audio.post("/upload-audio-complete")
 async def upload_audio_complete(file: UploadFile = File(...)):
     try:
+        print(f"Received file: {file.filename}, content_type: {file.content_type}")
         room_code = generate_room_code()
         result = await process_audio_complete(file, room_code)
 
