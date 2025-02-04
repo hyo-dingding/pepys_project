@@ -22,6 +22,7 @@ import * as Asset from "expo-asset";
 import { v4 as uuidv4 } from "uuid";
 import * as Crypto from "expo-crypto";
 
+
 const { width } = Dimensions.get("window");
 
 const AudioUploadScreen = () => {
@@ -80,6 +81,7 @@ const AudioUploadScreen = () => {
                 return;
             }
 
+
             const formData = new FormData();
             formData.append("file", {
                 uri: fileUrl,
@@ -90,6 +92,7 @@ const AudioUploadScreen = () => {
                 console.log("FormData part:", part);
             });
             // 파일을 업로드
+
             const response = await axios.post(
                 `${NGROK_URL}/upload-audio-complete`,
                 formData,
@@ -97,8 +100,11 @@ const AudioUploadScreen = () => {
                     headers: {
                         "Content-Type": "multipart/form-data",
                     },
+                    maxContentLength: Infinity,
+                    maxBodyLength: Infinity,
                 }
             );
+            console.log("response", response);
 
             const result = response.data.data;
             navigation.navigate("AudioUploadRecording", {

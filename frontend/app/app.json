@@ -11,6 +11,11 @@
             "resizeMode": "cover",
             "backgroundColor": "#ffffff"
         },
+        "newArchEnabled": true,
+        "plugins": [
+            "react-native-reanimated/plugin",
+            ["expo-asset", "expo-build-properties"]
+        ],
         "ios": {
             "googleServicesFile": "./GoogleService-Info.plist",
             "bundleIdentifier": "com.onepint.pepys",
@@ -19,43 +24,41 @@
                 "NSAppTransportSecurity": {
                     "NSAllowsArbitraryLoads": true
                 },
-
                 "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload audio files.",
                 "NSMicrophoneUsageDescription": "This app needs access to the microphone to record audio.",
                 "NSDocumentsFolderUsageDescription": "This app needs access to your documents folder to save and upload files."
             }
-        }
-    },
-    "android": {
-        "googleServicesFile": "./google-services.json",
-        "package": "com.onepint.pepys",
-        "permissions": [
-            "READ_EXTERNAL_STORAGE",
-            "WRITE_EXTERNAL_STORAGE",
-            "RECORD_AUDIO"
-        ],
-        "adaptiveIcon": {
-            "foregroundImage": "./src/assets/image/adaptive-icon.png",
-            "backgroundColor": "#ffffff"
         },
-        "plugins": [
-            "@react-native-firebase/app",
-            "expo-build-properties",
-            {
-                "ios": {
-                    "useFrameworks": "static"
+        "android": {
+            "googleServicesFile": "./google-services.json",
+            "package": "com.onepint.pepys",
+            "permissions": [
+                "READ_EXTERNAL_STORAGE",
+                "WRITE_EXTERNAL_STORAGE",
+                "RECORD_AUDIO"
+            ],
+            "adaptiveIcon": {
+                "foregroundImage": "./src/assets/image/adaptive-icon.png",
+                "backgroundColor": "#ffffff"
+            },
+            "plugins": [
+                "@react-native-firebase/app",
+                "expo-build-properties",
+                {
+                    "ios": {
+                        "useFrameworks": "static"
+                    }
                 }
+            ]
+        },
+        "web": {
+            "favicon": ".src/assets/image/favicon.png"
+        },
+        "extra": {
+            "eas": {
+                "projectId": "6799ec86-9fbf-4758-9088-4e47741668fb"
             }
-        ]
-    },
-    "web": {
-        "favicon": ".src/assets/image/favicon.png"
-    },
-    "extra": {
-        "eas": {
-            "projectId": "6799ec86-9fbf-4758-9088-4e47741668fb"
-        }
-    },
-    "plugins": ["react-native-reanimated/plugin"],
-    "owner": "HyoJinPark"
+        },
+        "owner": "HyoJinPark"
+    }
 }

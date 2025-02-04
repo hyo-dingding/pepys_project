@@ -67,7 +67,7 @@ const SummaryScreen = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6A9C89" />
+          <ActivityIndicator size={36} color="#6A9C89" />
           <Text style={styles.loadingText}>Analyzing...</Text>
           <Text style={styles.loadingSubtext}>Please wait a moment</Text>
         </View>
