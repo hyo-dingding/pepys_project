@@ -41,7 +41,7 @@ const AudioUploadScreen = () => {
   const [activeDeleteIndex, setActiveDeleteIndex] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
   const [sourceLanguage, setSourceLanguage] = useState(languages[0]);
-  const [targetLanguage, setTargetLanguage] = useState(languages[1]);
+  const [targetLanguage, setTargetLanguage] = useState(null);
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectingLanguage, setSelectingLanguage] = useState(null);
 
@@ -118,13 +118,12 @@ const AudioUploadScreen = () => {
         detected_language: "ko",
       };
 
-      // FileUploadScreen으로 이동하며 필요한 데이터를 전달
-      navigation.navigate("FileUpload", {
+      // AudioUploadRecording으로 이동하며 필요한 데이터를 전달
+      navigation.navigate("AudioUploadRecording", {
         stt_text: result.stt_text,
         room_code: result.room_code,
         summary: result.summary,
         detected_language: result.detected_language,
-        activeButton: "Upload Recording", // FileUploadScreen에서 구분하기 위한 파라미터
       });
     } catch (err) {
       console.error("Error uploading file:", err);
@@ -134,12 +133,11 @@ const AudioUploadScreen = () => {
 
   //  테스트용 더미 데이터로 다음 화면으로 이동
   const handleSkip = () => {
-    navigation.navigate("FileUpload", {
+    navigation.navigate("AudioUploadRecording", {
       stt_text: "테스트 텍스트",
       room_code: "TEST123",
       summary: "테스트 요약",
       detected_language: "ko",
-      activeButton: "Upload Recording",
     });
   };
 
@@ -238,16 +236,33 @@ const AudioUploadScreen = () => {
           <Text style={styles.languageSectionTitle}>Select Final Language</Text>
           <View style={styles.languageSelectorContainer}>
             <TouchableOpacity
-              style={styles.languageButton}
+              style={[
+                styles.languageButton,
+                !targetLanguage && styles.languageButtonDefault,
+              ]}
               onPress={() => toggleModal("target")}
             >
               <MaterialIcons name="language" size={20} color="#6A9C89" />
               <View style={styles.languageTextContainer}>
-                <Text style={styles.languageText}>{targetLanguage.name}</Text>
-                <Text style={styles.languageSubText}>
-                  {targetLanguage.subname}
-                </Text>
+                {targetLanguage ? (
+                  <>
+                    <Text style={styles.languageText}>
+                      {targetLanguage.name}
+                    </Text>
+                    <Text style={styles.languageSubText}>
+                      {targetLanguage.subname}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.defaultLanguageText}>Language</Text>
+                )}
               </View>
+              <MaterialIcons
+                name="keyboard-arrow-down"
+                size={20}
+                color="#6A9C89"
+                style={styles.arrowIcon}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -288,7 +303,7 @@ const AudioUploadScreen = () => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                Select {selectingLanguage === "source" ? "Source" : "Target"}{" "}
+                Select {selectingLanguage === "source" ? "Source" : "Final"}{" "}
                 Language
               </Text>
               <TouchableOpacity
@@ -527,17 +542,31 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: "60%", // 버튼의 최대 너비 제한
   },
+  languageButtonDefault: {
+    backgroundColor: "#f8f9fa",
+  },
+  languageIcon: {
+    marginRight: 8,
+  },
   languageTextContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 6, //아이콘과 텍스트 사이 간격
+    marginHorizontal: 8, // 수정
+  },
+  arrowIcon: {
+    marginLeft: 3,
   },
   languageText: {
     fontSize: 14,
     color: "#2D3436",
     fontWeight: "500",
     marginRight: 4,
+  },
+  defaultLanguageText: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
   },
   languageSubText: {
     fontSize: 12,

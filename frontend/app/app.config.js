@@ -12,28 +12,14 @@ if (process.env.STAGE) {
 }
 
 export default {
-
-    expo: {
-        name: "YourAppName",
-        slug: "your-app",
-        version: "1.0.0",
-        orientation: "portrait",
-        extra: {
-            supabaseUrl: process.env.SUPABASE_URL,
-            supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
-        },
-        android: {
-            adaptiveIcon: {
-                foregroundImage: "./src/assets/image/adaptive-icon.png",
-                backgroundColor: "#FFFFFF",
-            },
-        },
-        ios: {
-            supportsTablet: true,
-        },
-        web: {
-            favicon: "./src/assets/image/favicon.png",
-        },
+  expo: {
+    name: "YourAppName",
+    slug: "your-app",
+    version: "1.0.0",
+    orientation: "portrait",
+    extra: {
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
     },
     android: {
       adaptiveIcon: {
@@ -47,4 +33,17 @@ export default {
     web: {
       favicon: "./src/assets/image/favicon.png",
     },
-  }
+  },
+  android: {
+    adaptiveIcon: {
+      foregroundImage: "./src/assets/image/adaptive-icon.png",
+      backgroundColor: "#FFFFFF",
+    },
+  },
+  ios: {
+    supportsTablet: true,
+  },
+  web: {
+    favicon: "./src/assets/image/favicon.png",
+  },
+};

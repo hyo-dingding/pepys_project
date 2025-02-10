@@ -19,7 +19,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // import { NGROK_URL } from "@env";
 
-const NGROK_URL = "https://3998-218-148-117-162.ngrok-free.app";
+const NGROK_URL = "https://4b26-218-148-117-162.ngrok-free.app";
 
 const { height } = Dimensions.get("window");
 
@@ -31,6 +31,11 @@ const RESET_STEPS = {
 };
 
 const ForgotPasswordModal = ({ visible, onClose }) => {
+  // 🔥 디버깅: visible 값 변경될 때마다 로그 출력
+  // useEffect(() => {
+  //   console.log("LoginModal 렌더링됨, visible 상태:", visible); // 👈 여기에 추가
+  // }, [visible]);
+
   // 상태 관리
   const [currentStep, setCurrentStep] = useState(RESET_STEPS.EMAIL);
   const [email, setEmail] = useState("");
@@ -64,7 +69,10 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
       visible={visible}
       transparent={true}
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        console.log("LoginModal 닫힘 이벤트 감지됨"); // 오류 관련
+        onClose();
+      }}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

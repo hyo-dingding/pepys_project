@@ -8,23 +8,23 @@ import {
   FlatList,
   ScrollView,
   StatusBar,
-  Dimensions,
-  Animated,
+  // Dimensions,
+  // Animated,
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
-import { LinearGradient } from "expo-linear-gradient";
+// import { LinearGradient } from "expo-linear-gradient";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NGROK_URL } from "@env";
-import * as FileSystem from "expo-file-system";
+// import * as FileSystem from "expo-file-system";
 // import { encode } from "react-native-base64";
-import { encode as encodeBase64 } from "base64-arraybuffer";
-import * as MediaLibrary from "expo-media-library";
+// import { encode as encodeBase64 } from "base64-arraybuffer";
+// import * as MediaLibrary from "expo-media-library";
 
-const { width } = Dimensions.get("window");
+// const { width } = Dimensions.get("window");
 
 const languages = [
   { code: "ko", name: "한국어", subname: "(Korean)" },
@@ -37,37 +37,37 @@ const languages = [
 const AudioUploadRecording = ({ route }) => {
   const { stt_text, summary, detected_language } = route.params;
   const [sourceLanguage, setSourceLanguage] = useState(detected_language);
-  const [targetLanguage, setTargetLanguage] = useState(languages[1]); // 기본값: 한국어
+  const [targetLanguage, setTargetLanguage] = useState(languages[1]);
   const [summarizedText, setSummarizedText] = useState(summary[targetLanguage]); // 초기 한국어 요약
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectingLanguage, setSelectingLanguage] = useState(null);
   const [activeTab, setActiveTab] = useState("transcription");
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [showStopModal, setShowStopModal] = useState(false);
+  // const [isRecording, setIsRecording] = useState(false);
+  // const [recordingTime, setRecordingTime] = useState(0);
+  // const [isPaused, setIsPaused] = useState(false);
+  // const [showStopModal, setShowStopModal] = useState(false);
   const [sttText, setSttText] = useState("");
 
-  // Animation values
-  const fadeAnim = new Animated.Value(1);
-  const scaleAnim = new Animated.Value(1);
-  useEffect(() => {
-    // 오디오 세션을 활성화
-    const enableAudioSession = async () => {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        staysActiveInBackground: false,
-        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
-      });
-    };
+  // Animation values 제거 주석
+  // const fadeAnim = new Animated.Value(1);
+  // const scaleAnim = new Animated.Value(1);
+  // useEffect(() => {
+  //   // 오디오 세션을 활성화
+  //   const enableAudioSession = async () => {
+  //     await Audio.setAudioModeAsync({
+  //       allowsRecordingIOS: false,
+  //       interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+  //       playsInSilentModeIOS: true,
+  //       shouldDuckAndroid: true,
+  //       staysActiveInBackground: false,
+  //       interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+  //     });
+  //   };
 
-    enableAudioSession();
-  }, []);
+  //   enableAudioSession();
+  // }, []);
 
   useEffect(() => {
     // targetLanguage가 변경될 때마다 요약 업데이트
@@ -79,60 +79,60 @@ const AudioUploadRecording = ({ route }) => {
     setModalVisible(false);
   };
 
-  useEffect(() => {
-    let interval;
-    if (isRecording && !isPaused) {
-      interval = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
+  // useEffect(() => {
+  //   let interval;
+  //   if (isRecording && !isPaused) {
+  //     interval = setInterval(() => {
+  //       setRecordingTime((prev) => prev + 1);
+  //     }, 1000);
 
-      Animated.loop(
-        Animated.sequence([
-          Animated.parallel([
-            Animated.timing(fadeAnim, {
-              toValue: 0.5,
-              duration: 1000,
-              useNativeDriver: true,
-            }),
-            Animated.timing(scaleAnim, {
-              toValue: 1.1,
-              duration: 1000,
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.parallel([
-            Animated.timing(fadeAnim, {
-              toValue: 1,
-              duration: 1000,
-              useNativeDriver: true,
-            }),
-            Animated.timing(scaleAnim, {
-              toValue: 1,
-              duration: 1000,
-              useNativeDriver: true,
-            }),
-          ]),
-        ])
-      ).start();
-    } else {
-      clearInterval(interval);
-      setRecordingTime(0);
-    }
-    return () => clearInterval(interval);
-  }, [isRecording, isPaused]);
+  //     Animated.loop(
+  //       Animated.sequence([
+  //         Animated.parallel([
+  //           Animated.timing(fadeAnim, {
+  //             toValue: 0.5,
+  //             duration: 1000,
+  //             useNativeDriver: true,
+  //           }),
+  //           Animated.timing(scaleAnim, {
+  //             toValue: 1.1,
+  //             duration: 1000,
+  //             useNativeDriver: true,
+  //           }),
+  //         ]),
+  //         Animated.parallel([
+  //           Animated.timing(fadeAnim, {
+  //             toValue: 1,
+  //             duration: 1000,
+  //             useNativeDriver: true,
+  //           }),
+  //           Animated.timing(scaleAnim, {
+  //             toValue: 1,
+  //             duration: 1000,
+  //             useNativeDriver: true,
+  //           }),
+  //         ]),
+  //       ])
+  //     ).start();
+  //   } else {
+  //     clearInterval(interval);
+  //     setRecordingTime(0);
+  //   }
+  //   return () => clearInterval(interval);
+  // }, [isRecording, isPaused]);
 
   const toggleModal = (type) => {
     setSelectingLanguage(type);
     setModalVisible(!isModalVisible);
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
+  // const formatTime = (seconds) => {
+  //   const mins = Math.floor(seconds / 60);
+  //   const secs = seconds % 60;
+  //   return `${mins.toString().padStart(2, "0")}:${secs
+  //     .toString()
+  //     .padStart(2, "0")}`;
+  // };
 
   // MongoDB에서 가져온 STT 결과를 저장할 상태 추가
   // const fetchMongoSttResult = async (roomCode) => {
@@ -225,7 +225,7 @@ const AudioUploadRecording = ({ route }) => {
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.didJustFinish) {
           console.log("오디오 재생 완료");
-          newSound.unloadAsync(); // 재생 완료 후 해제
+          sound.unloadAsync(); // 재생 완료 후 해제
           setSound(null);
         }
       });
@@ -331,17 +331,37 @@ const AudioUploadRecording = ({ route }) => {
         {renderContent()}
       </View>
 
-      <View style={styles.languageSelectorContainer}>
-        <TouchableOpacity
-          style={styles.languageButton}
-          onPress={() => toggleModal("target")}
-        >
-          <MaterialIcons name="language" size={20} color="#6A9C89" />
-          <View style={styles.languageTextContainer}>
-            <Text style={styles.languageText}>{targetLanguage.name}</Text>
-            <Text style={styles.languageSubText}>{targetLanguage.subname}</Text>
-          </View>
-        </TouchableOpacity>
+      <View style={styles.languageSection}>
+        <Text style={styles.languageSectionTitle}>Change Final Language</Text>
+        <View style={styles.languageSelectorContainer}>
+          <TouchableOpacity
+            style={[
+              styles.languageButton,
+              !targetLanguage && styles.languageButtonDefault,
+            ]}
+            onPress={() => toggleModal("target")}
+          >
+            <MaterialIcons name="language" size={20} color="#6A9C89" />
+            <View style={styles.languageTextContainer}>
+              {targetLanguage ? (
+                <>
+                  <Text style={styles.languageText}>{targetLanguage.name}</Text>
+                  <Text style={styles.languageSubText}>
+                    {targetLanguage.subname}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.defaultLanguageText}>Language</Text>
+              )}
+            </View>
+            <MaterialIcons
+              name="keyboard-arrow-down"
+              size={20}
+              color="#6A9C89"
+              style={styles.arrowIcon}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 언어 선택 모달 */}
@@ -389,7 +409,7 @@ const AudioUploadRecording = ({ route }) => {
         </View>
       </Modal>
       {/* 녹화 중지 확인 모달 */}
-      <Modal visible={showStopModal} transparent={true} animationType="fade">
+      {/* <Modal visible={showStopModal} transparent={true} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.stopModalContent}>
             <Text style={styles.stopModalTitle}>End Recording?</Text>
@@ -418,7 +438,7 @@ const AudioUploadRecording = ({ route }) => {
             </View>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
     </SafeAreaView>
   );
 };
@@ -433,7 +453,7 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    paddingBottom: 65,
+    paddingBottom: 120,
   },
 
   // 헤더 관련 스타일
@@ -535,14 +555,27 @@ const styles = StyleSheet.create({
   },
 
   // 언어 선택 관련 스타일
+  languageSection: {
+    position: "absolute",
+    width: "100%",
+    bottom: Platform.OS === "ios" ? 100 : 75,
+    backgroundColor: "#fff",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  languageSectionTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#2D3436",
+    marginBottom: 8, // 제목과 버튼과의 간격
+  },
   languageSelectorContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 30,
+    paddingHorizontal: 20, // 좌우 여백 설정
     backgroundColor: "#fff",
     width: "100%",
-    bottom: Platform.OS === "ios" ? 80 : 56, // 네비게이션 바 위의 위치
   },
   selectLanguageTitle: {
     fontSize: 16,
@@ -563,6 +596,15 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: "60%",
   },
+  languageButtonDefault: {
+    backgroundColor: "#f8f9fa",
+  },
+  languageTextContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 8,
+  },
   languageButtonContent: {
     flexDirection: "row",
     alignItems: "center",
@@ -577,6 +619,14 @@ const styles = StyleSheet.create({
   languageSubText: {
     fontSize: 12,
     color: "#636E72",
+  },
+  defaultLanguageText: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
+  },
+  arrowIcon: {
+    marginLeft: 3,
   },
   swapIcon: {
     marginHorizontal: 16,
@@ -658,51 +708,51 @@ const styles = StyleSheet.create({
   },
 
   // 중지 확인 모달 스타일
-  stopModalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 24,
-    width: "85%",
-    alignSelf: "center",
-  },
-  stopModalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#2D3436",
-    marginBottom: 12,
-  },
-  stopModalText: {
-    fontSize: 16,
-    color: "#636E72",
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  stopModalButtons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-  },
-  stopModalButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-  },
-  stopModalCancelButton: {
-    backgroundColor: "#f8f9fa",
-  },
-  stopModalConfirmButton: {
-    backgroundColor: "#FF4444",
-  },
-  stopModalCancelText: {
-    color: "#636E72",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  stopModalConfirmText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
-  },
+  // stopModalContent: {
+  //   backgroundColor: "#fff",
+  //   borderRadius: 20,
+  //   padding: 24,
+  //   width: "85%",
+  //   alignSelf: "center",
+  // },
+  // stopModalTitle: {
+  //   fontSize: 20,
+  //   fontWeight: "600",
+  //   color: "#2D3436",
+  //   marginBottom: 12,
+  // },
+  // stopModalText: {
+  //   fontSize: 16,
+  //   color: "#636E72",
+  //   marginBottom: 24,
+  //   lineHeight: 22,
+  // },
+  // stopModalButtons: {
+  //   flexDirection: "row",
+  //   justifyContent: "flex-end",
+  //   gap: 12,
+  // },
+  // stopModalButton: {
+  //   paddingVertical: 12,
+  //   paddingHorizontal: 20,
+  //   borderRadius: 12,
+  // },
+  // stopModalCancelButton: {
+  //   backgroundColor: "#f8f9fa",
+  // },
+  // stopModalConfirmButton: {
+  //   backgroundColor: "#FF4444",
+  // },
+  // stopModalCancelText: {
+  //   color: "#636E72",
+  //   fontSize: 16,
+  //   fontWeight: "500",
+  // },
+  // stopModalConfirmText: {
+  //   color: "#fff",
+  //   fontSize: 16,
+  //   fontWeight: "500",
+  // },
 });
 
 export default AudioUploadRecording;

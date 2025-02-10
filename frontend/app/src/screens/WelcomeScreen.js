@@ -108,7 +108,13 @@ const WelcomeScreen = ({ navigation }) => {
               {/* 로그인 버튼 */}
               <TouchableOpacity
                 style={styles.welcomeButton}
-                onPress={() => setShowLoginModal(true)}
+                onPress={() => {
+                  console.log(
+                    "SIGN IN 버튼 클릭됨, showLoginModal:",
+                    showLoginModal
+                  ); //오류 관련 추가
+                  setShowLoginModal(true);
+                }}
               >
                 <Text style={styles.welcomeButtonText}>SIGN IN</Text>
               </TouchableOpacity>
@@ -134,7 +140,10 @@ const WelcomeScreen = ({ navigation }) => {
           {/* 로그인 모달 컴포넌트 */}
           <LoginModal
             visible={showLoginModal}
-            onClose={() => setShowLoginModal(false)}
+            onClose={() => {
+              console.log("LoginModal 닫힘"); //오류 관련 추가
+              setShowLoginModal(false);
+            }}
             navigation={navigation}
           />
         </LinearGradient>

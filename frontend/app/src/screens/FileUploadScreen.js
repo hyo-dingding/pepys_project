@@ -20,10 +20,11 @@ const axios = require("axios").default;
 
 const FileUploadScreen = ({ route }) => {
   const activeButton = route?.params?.activeButton;
-  const stt_text = route?.params?.stt_text;
-  const room_code = route?.params?.room_code;
-  const summary = route?.params?.summary;
-  const detected_language = route?.params?.detected_language;
+  // audio upload 관련 주석 진행시 제거 예정
+  // const stt_text = route?.params?.stt_text;
+  // const room_code = route?.params?.room_code;
+  // const summary = route?.params?.summary;
+  // const detected_language = route?.params?.detected_language;
   const navigation = useNavigation();
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [activeDeleteIndex, setActiveDeleteIndex] = useState(null);
@@ -124,15 +125,17 @@ const FileUploadScreen = ({ route }) => {
           throw error;
         }
 
+        //  audio upload 관련 주석 진행시 제거 예정
         // AudioUpload에서 넘어온 경우 추가된 데이터를 포함하여 다음 화면으로 이동
-        if (stt_text && room_code) {
-          navigation.navigate("AudioUploadRecording", {
-            stt_text,
-            room_code,
-            summary,
-            detected_language,
-          });
-        } else if (activeButton === "New Meeting") {
+        // if (stt_text && room_code) {
+        //   navigation.navigate("AudioUploadRecording", {
+        //     stt_text,
+        //     room_code,
+        //     summary,
+        //     detected_language,
+        //   });
+        // } else
+        if (activeButton === "New Meeting") {
           const roomCode = generateRoomCode();
           navigation.navigate("RealTimeRecording", {
             isHost: true,
@@ -153,20 +156,22 @@ const FileUploadScreen = ({ route }) => {
         isHost: true,
         roomCode: roomCode, // 생성된 룸 코드 전달
       });
-    } else if (activeButton === "Upload Recording") {
-      // AudioUploadRecording 화면으로 이동하며 필요한 파라미터 전달
-      navigation.navigate("AudioUploadRecording", {
-        stt_text: route?.params?.stt_text || "",
-        room_code: route?.params?.room_code || generateRoomCode(),
-        summary: route?.params?.summary || {
-          ko: "",
-          en: "",
-          ja: "",
-          zh: "",
-        },
-        detected_language: route?.params?.detected_language || "ko",
-      });
     }
+    // audio upload 관련 주석 진행시 제거 예정
+    // else if (activeButton === "Upload Recording") {
+    //   // AudioUploadRecording 화면으로 이동하며 필요한 파라미터 전달
+    //   navigation.navigate("AudioUploadRecording", {
+    //     stt_text: route?.params?.stt_text || "",
+    //     room_code: route?.params?.room_code || generateRoomCode(),
+    //     summary: route?.params?.summary || {
+    //       ko: "",
+    //       en: "",
+    //       ja: "",
+    //       zh: "",
+    //     },
+    //     detected_language: route?.params?.detected_language || "ko",
+    //   });
+    // }
   };
 
   const renderEmptyState = () => (
