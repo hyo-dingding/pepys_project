@@ -21,8 +21,8 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NGROK_URL } from "@env";
 import * as Asset from "expo-asset";
-import { v4 as uuidv4 } from "uuid";
-import * as Crypto from "expo-crypto";
+// import { v4 as uuidv4 } from "uuid";
+// import * as Crypto from "expo-crypto";
 
 const { width } = Dimensions.get("window");
 
@@ -88,6 +88,11 @@ const AudioUploadScreen = () => {
         return;
       }
 
+      if (!targetLanguage) {
+        Alert.alert("Error", "Please select a language.");
+        return;
+      }
+
       const formData = new FormData();
       formData.append("file", {
         uri: fileUrl,
@@ -115,7 +120,6 @@ const AudioUploadScreen = () => {
         stt_text: "테스트 텍스트",
         room_code: "TEST123",
         summary: "테스트 요약",
-        detected_language: "ko",
       };
 
       // AudioUploadRecording으로 이동하며 필요한 데이터를 전달
@@ -123,7 +127,7 @@ const AudioUploadScreen = () => {
         stt_text: result.stt_text,
         room_code: result.room_code,
         summary: result.summary,
-        detected_language: result.detected_language,
+        selected_language: targetLanguage.code,
       });
     } catch (err) {
       console.error("Error uploading file:", err);
@@ -133,11 +137,18 @@ const AudioUploadScreen = () => {
 
   //  테스트용 더미 데이터로 다음 화면으로 이동
   const handleSkip = () => {
+    if (!targetLanguage) {
+      Alert.alert("Warning", "Please select a language before proceeding.", [
+        { text: "OK" },
+      ]);
+      return;
+    }
+
     navigation.navigate("AudioUploadRecording", {
       stt_text: "테스트 텍스트",
       room_code: "TEST123",
       summary: "테스트 요약",
-      detected_language: "ko",
+      selected_language: targetLanguage.code,
     });
   };
 

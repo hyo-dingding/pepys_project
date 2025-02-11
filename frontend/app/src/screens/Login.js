@@ -19,7 +19,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // import { NGROK_URL } from "@env";
 
-const NGROK_URL = "https://4b26-218-148-117-162.ngrok-free.app";
+const NGROK_URL = "https://6e60-218-148-117-162.ngrok-free.app";
 
 const { height } = Dimensions.get("window");
 
@@ -31,11 +31,6 @@ const RESET_STEPS = {
 };
 
 const ForgotPasswordModal = ({ visible, onClose }) => {
-  // 🔥 디버깅: visible 값 변경될 때마다 로그 출력
-  // useEffect(() => {
-  //   console.log("LoginModal 렌더링됨, visible 상태:", visible); // 👈 여기에 추가
-  // }, [visible]);
-
   // 상태 관리
   const [currentStep, setCurrentStep] = useState(RESET_STEPS.EMAIL);
   const [email, setEmail] = useState("");
@@ -69,10 +64,7 @@ const ForgotPasswordModal = ({ visible, onClose }) => {
       visible={visible}
       transparent={true}
       animationType="fade"
-      onRequestClose={() => {
-        console.log("LoginModal 닫힘 이벤트 감지됨"); // 오류 관련
-        onClose();
-      }}
+      onRequestClose={onClose}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -283,23 +275,6 @@ const LoginModal = ({ visible, onClose, navigation }) => {
     })
   ).current;
 
-  // const handleLogin = async () => {
-  //   try {
-  //     // 로그인 성공 처리
-  //     const fakeAccessToken = "dummy_access_token"; // 가짜 토큰 생성
-  //     console.log("Login successful, token:", fakeAccessToken);
-
-  //     // AsyncStorage에 가짜 토큰과 이메일 저장
-  //     await AsyncStorage.setItem("access_token", fakeAccessToken);
-  //     await AsyncStorage.setItem("user_email", email || "guest@example.com");
-
-  //     // 로그인 성공 후 메인 화면으로 이동
-  //     navigation.navigate("MainTabs", { screen: "RoomSetup" });
-  //   } catch (error) {
-  //     console.error("Error during login:", error);
-  //     Alert.alert("Error", "An unexpected error occurred.");
-  //   }
-  // };
   const handleLogin = async () => {
     try {
       const response = await axios.post(
@@ -316,6 +291,9 @@ const LoginModal = ({ visible, onClose, navigation }) => {
         // 토큰저장
         await AsyncStorage.setItem("access_token", access_token);
         await AsyncStorage.setItem("user_email", email);
+
+        // 로그인 성공 후 모달 닫기
+        onClose();
 
         // 로그인 성공 처리, 토큰 저장 등
         navigation.navigate("MainTabs", { screen: "RoomSetup" });

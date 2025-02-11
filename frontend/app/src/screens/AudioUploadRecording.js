@@ -8,23 +8,26 @@ import {
   FlatList,
   ScrollView,
   StatusBar,
-  // Dimensions,
-  // Animated,
   Platform,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Audio } from "expo-av";
-// import { LinearGradient } from "expo-linear-gradient";
+// import { Audio } from "expo-av"; tts 진행시 주석 제거 예정
 import axios from "axios";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NGROK_URL } from "@env";
-// import * as FileSystem from "expo-file-system";
 // import { encode } from "react-native-base64";
-// import { encode as encodeBase64 } from "base64-arraybuffer";
-// import * as MediaLibrary from "expo-media-library";
-
-// const { width } = Dimensions.get("window");
+import * as Print from "expo-print";
+import { initializeApp } from "firebase/app";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  FIREBASE_API_KEY,
+  FIREBASE_AUTH_DOMAIN,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_STORAGE_BUCKET,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_APP_ID,
+} from "@env";
 
 const languages = [
   { code: "ko", name: "한국어", subname: "(Korean)" },
@@ -34,105 +37,77 @@ const languages = [
   { code: "ja", name: "日本語", subname: "(Japanese)" },
 ];
 
+const firebaseConfig = {
+  apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
+};
+
+const app = initializeApp(firebaseConfig);
+
 const AudioUploadRecording = ({ route }) => {
-  const { stt_text, summary, detected_language } = route.params;
-  const [sourceLanguage, setSourceLanguage] = useState(detected_language);
-  const [targetLanguage, setTargetLanguage] = useState(languages[1]);
-  const [summarizedText, setSummarizedText] = useState(summary[targetLanguage]); // 초기 한국어 요약
+  const { stt_text, summary, selected_language } = route.params;
+  const [targetLanguage, setTargetLanguage] = useState(
+    languages.find((lang) => lang.code === selected_language)
+  );
+  const [summarizedText, setSummarizedText] = useState(
+    summary[selected_language]
+  );
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectingLanguage, setSelectingLanguage] = useState(null);
   const [activeTab, setActiveTab] = useState("transcription");
 
-  // const [isRecording, setIsRecording] = useState(false);
-  // const [recordingTime, setRecordingTime] = useState(0);
-  // const [isPaused, setIsPaused] = useState(false);
-  // const [showStopModal, setShowStopModal] = useState(false);
   const [sttText, setSttText] = useState("");
 
-  // Animation values 제거 주석
-  // const fadeAnim = new Animated.Value(1);
-  // const scaleAnim = new Animated.Value(1);
-  // useEffect(() => {
-  //   // 오디오 세션을 활성화
-  //   const enableAudioSession = async () => {
-  //     await Audio.setAudioModeAsync({
-  //       allowsRecordingIOS: false,
-  //       interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
-  //       playsInSilentModeIOS: true,
-  //       shouldDuckAndroid: true,
-  //       staysActiveInBackground: false,
-  //       interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
-  //     });
-  //   };
-
-  //   enableAudioSession();
-  // }, []);
+  const [sttStatus, setSttStatus] = useState("waiting");
+  // const [ttsStatus, setTtsStatus] = useState("waiting"); tts 진행시 주석 제거 예정
+  const [summaryStatus, setSummaryStatus] = useState("waiting");
 
   useEffect(() => {
     // targetLanguage가 변경될 때마다 요약 업데이트
-    setSummarizedText(summary[targetLanguage.code]);
-  }, [stt_text, targetLanguage, summary]);
+    if (targetLanguage && summary[targetLanguage.code]) {
+      setSummarizedText(summary[targetLanguage.code]);
+    }
+  }, [targetLanguage, summary]);
+
+  useEffect(() => {
+    // stt진행시 tts(elevenlabs)자동 진행, tts 진행시 주석 제거 예정
+    if (stt_text) {
+      // elevenLabsVoice();
+      setSttStatus("completed");
+      // setTtsStatus("processing");
+    }
+  }, [stt_text]);
+
+  // tts 진행시 주석 제거 예정
+  // useEffect(() => {
+  //   if (audioFileName) {
+  //     setTtsStatus("completed");
+  //   }
+  // }, [audioFileName]);
+
+  useEffect(() => {
+    if (activeTab === "summary" && summarizedText) {
+      setSummaryStatus("completed");
+      handleSavePDF();
+    } else if (activeTab === "summary") {
+      setSummaryStatus("processing");
+    }
+  }, [activeTab, summarizedText]);
 
   const selectLanguage = (language) => {
     setTargetLanguage(language);
     setModalVisible(false);
   };
 
-  // useEffect(() => {
-  //   let interval;
-  //   if (isRecording && !isPaused) {
-  //     interval = setInterval(() => {
-  //       setRecordingTime((prev) => prev + 1);
-  //     }, 1000);
-
-  //     Animated.loop(
-  //       Animated.sequence([
-  //         Animated.parallel([
-  //           Animated.timing(fadeAnim, {
-  //             toValue: 0.5,
-  //             duration: 1000,
-  //             useNativeDriver: true,
-  //           }),
-  //           Animated.timing(scaleAnim, {
-  //             toValue: 1.1,
-  //             duration: 1000,
-  //             useNativeDriver: true,
-  //           }),
-  //         ]),
-  //         Animated.parallel([
-  //           Animated.timing(fadeAnim, {
-  //             toValue: 1,
-  //             duration: 1000,
-  //             useNativeDriver: true,
-  //           }),
-  //           Animated.timing(scaleAnim, {
-  //             toValue: 1,
-  //             duration: 1000,
-  //             useNativeDriver: true,
-  //           }),
-  //         ]),
-  //       ])
-  //     ).start();
-  //   } else {
-  //     clearInterval(interval);
-  //     setRecordingTime(0);
-  //   }
-  //   return () => clearInterval(interval);
-  // }, [isRecording, isPaused]);
-
   const toggleModal = (type) => {
     setSelectingLanguage(type);
     setModalVisible(!isModalVisible);
   };
-
-  // const formatTime = (seconds) => {
-  //   const mins = Math.floor(seconds / 60);
-  //   const secs = seconds % 60;
-  //   return `${mins.toString().padStart(2, "0")}:${secs
-  //     .toString()
-  //     .padStart(2, "0")}`;
-  // };
 
   // MongoDB에서 가져온 STT 결과를 저장할 상태 추가
   // const fetchMongoSttResult = async (roomCode) => {
@@ -173,66 +148,184 @@ const AudioUploadRecording = ({ route }) => {
   //     }
   // };
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [sound, setSound] = useState();
-  const [audioFileName, setAudioFileName] = useState("");
+  // tts 진행시 주석 제거 예정
+  // const [isPlaying, setIsPlaying] = useState(false);
+  // const [sound, setSound] = useState();
+  // const [audioFileName, setAudioFileName] = useState("");
 
-  const elevenLabsVoice = async () => {
+  // const elevenLabsVoice = async () => {
+  //   try {
+  //     // 백엔드에서 텍스트 음성 변환 파일 요청
+  //     const response = await axios.post(
+  //       `${NGROK_URL}/convert-text-to-speech/`,
+  //       {
+  //         text: stt_text,
+  //       },
+  //       {
+  //         headers: { "Content-Type": "application/json" }, // JSON 형식 지정
+  //       }
+  //     );
+  //     const { audio_file_name } = response.data;
+  //     setAudioFileName(audio_file_name);
+  //   } catch (error) {
+  //     console.error("Error playing TTS:", error);
+  //   }
+  // };
+
+  // const playAudio = async () => {
+  //   console.log("오디오 재생시작");
+  //   if (!audioFileName) {
+  //     console.error("Audio file name not set.");
+  //     return;
+  //   }
+
+  //   // 이미 재생 중이면 중지
+  //   if (isPlaying && sound) {
+  //     console.log("오디오 재생 중지");
+  //     await sound.stopAsync();
+  //     await sound.unloadAsync();
+  //     setSound(null);
+  //     setIsPlaying(false);
+  //     return;
+  //   }
+
+  //   try {
+  //     const { status } = await Audio.requestPermissionsAsync();
+  //     if (status !== "granted") {
+  //       console.error("Audio playback permissions not granted.");
+  //       return;
+  //     }
+
+  //     const audioUri = `${NGROK_URL}/get-voice-audio/${audioFileName}`;
+
+  //     // 새로운 사운드 객체 생성 및 오디오 파일 로드
+  //     const { sound } = await Audio.Sound.createAsync(
+  //       { uri: audioUri },
+  //       { shouldPlay: true }
+  //     );
+  //     console.log("오디오 재생 시작");
+  //     setSound(sound);
+  //     await sound.playAsync();
+
+  //     // 재생 상태 업데이트 (재생이 끝났을 때 해제)
+  //     sound.setOnPlaybackStatusUpdate((status) => {
+  //       if (status.didJustFinish) {
+  //         console.log("오디오 재생 완료");
+  //         sound.unloadAsync(); // 재생 완료 후 해제
+  //         setSound(null);
+  //         setIsPlaying(false);
+  //       }
+  //     });
+
+  //     // 오디오 재생
+  //   } catch (error) {
+  //     console.error("오디오 재생 오류:", error);
+  //     setIsPlaying(false);
+  //   }
+  // };
+
+  const createPDF = async () => {
+    // PDF HTML 템플릿
+    const html = `
+      <html>
+        <body>
+          <h1>Meeting Summary</h1>
+          <div style="margin-top: 20px;">
+            <h2>Transcription</h2>
+            <p>${stt_text}</p>
+          </div>
+          <div style="margin-top: 20px;">
+            <h2>Summary (${targetLanguage.name})</h2>
+            <p>${summarizedText}</p>
+          </div>
+        </body>
+      </html>
+    `;
+
     try {
-      // 백엔드에서 텍스트 음성 변환 파일 요청
-      const response = await axios.post(
-        `${NGROK_URL}/convert-text-to-speech/`,
-        {
-          text: stt_text,
-        },
-        {
-          headers: { "Content-Type": "application/json" }, // JSON 형식 지정
-        }
-      );
-      const { audio_file_name } = response.data;
-      setAudioFileName(audio_file_name);
+      const { uri } = await Print.printToFileAsync({
+        html: html,
+        base64: false,
+      });
+      return uri;
     } catch (error) {
-      console.error("Error playing TTS:", error);
+      console.error("PDF 생성 오류:", error);
+      return null;
     }
   };
 
-  const playAudio = async () => {
-    console.log("오디오 재생시작");
-    if (!audioFileName) {
-      console.error("Audio file name not set.");
-      return;
-    }
+  const generateUUID = () => {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+      /[xy]/g,
+      function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      }
+    );
+  };
 
+  const uploadToFirebase = async (uri) => {
     try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== "granted") {
-        console.error("Audio playback permissions not granted.");
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      const storage = getStorage();
+      const uuid = generateUUID();
+      const fileName = `summaries/${uuid}.pdf`;
+      const storageRef = ref(storage, fileName);
+
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      return downloadURL;
+    } catch (error) {
+      console.error("Firebase 업로드 오류:", error);
+      return null;
+    }
+  };
+
+  const handleSavePDF = async () => {
+    try {
+      // PDF 생성
+      const pdfUri = await createPDF();
+      if (!pdfUri) {
+        Alert.alert("Error", "Failed to generate PDF.", [
+          {
+            text: "OK",
+            style: "cancel",
+          },
+        ]);
         return;
       }
 
-      const audioUri = `${NGROK_URL}/get-voice-audio/${audioFileName}`;
+      // Firebase에 업로드
+      const downloadURL = await uploadToFirebase(pdfUri);
+      if (!downloadURL) {
+        Alert.alert("Error", "Failed to save PDF.", [
+          {
+            text: "OK",
+            style: "cancel",
+          },
+        ]);
+        return;
+      }
 
-      // 새로운 사운드 객체 생성 및 오디오 파일 로드
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: audioUri },
-        { shouldPlay: true }
-      );
-      console.log("오디오 재생 시작");
-      setSound(sound);
-      await sound.playAsync();
-
-      // 재생 상태 업데이트 (재생이 끝났을 때 해제)
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
-          console.log("오디오 재생 완료");
-          sound.unloadAsync(); // 재생 완료 후 해제
-          setSound(null);
-        }
-      });
-
-      // 오디오 재생
+      // 성공 알림
+      Alert.alert("Success", "PDF has been successfully saved.", [
+        {
+          text: "OK",
+          onPress: () => console.log("PDF saved:", downloadURL),
+        },
+      ]);
     } catch (error) {
-      console.error("오디오 재생 오류:", error);
+      console.error("PDF save error:", error);
+      Alert.alert("Error", "An error occurred while saving the PDF.", [
+        {
+          text: "OK",
+          style: "cancel",
+        },
+      ]);
     }
   };
 
@@ -242,6 +335,54 @@ const AudioUploadRecording = ({ route }) => {
         <TouchableOpacity style={styles.iconButton}>
           <MaterialIcons name="save" size={24} color="#6A9C89" />
         </TouchableOpacity>
+
+        <View style={styles.loadingStatus}>
+          {sttStatus !== "completed" ? (
+            <View style={styles.statusItem}>
+              <Text style={styles.statusText}>
+                STT {sttStatus === "processing" ? "Processing..." : "Waiting"}
+              </Text>
+              {sttStatus === "processing" && (
+                <MaterialIcons
+                  name="refresh"
+                  size={16}
+                  color="#6A9C89"
+                  style={styles.rotatingIcon}
+                />
+              )}
+            </View>
+          ) : /*tts 진행시 주석 제거 예정
+          /*ttsStatus !== "completed" ? ( 
+            <View style={styles.statusItem}>
+              <Text style={styles.statusText}>
+                TTS {ttsStatus === "processing" ? "Processing..." : "Waiting"}
+              </Text>
+              {ttsStatus === "processing" && (
+                <MaterialIcons
+                  name="refresh"
+                  size={16}
+                  color="#6A9C89"
+                  style={styles.rotatingIcon}
+                />
+              )}
+            </View>
+          ) :*/ summaryStatus !== "completed" && activeTab === "summary" ? (
+            <View style={styles.statusItem}>
+              <Text style={styles.statusText}>
+                Summary{" "}
+                {summaryStatus === "processing" ? "Processing..." : "Waiting"}
+              </Text>
+              {summaryStatus === "processing" && (
+                <MaterialIcons
+                  name="refresh"
+                  size={16}
+                  color="#6A9C89"
+                  style={styles.rotatingIcon}
+                />
+              )}
+            </View>
+          ) : null}
+        </View>
 
         <TouchableOpacity style={styles.iconButton}>
           <MaterialIcons name="mail" size={24} color="#6A9C89" />
@@ -260,7 +401,6 @@ const AudioUploadRecording = ({ route }) => {
           ]}
           onPress={() => {
             setActiveTab("transcription");
-            elevenLabsVoice();
             // fetchMongoSttResult();
           }}
         >
@@ -276,8 +416,27 @@ const AudioUploadRecording = ({ route }) => {
         <TouchableOpacity
           style={[styles.tab, activeTab === "summary" && styles.activeTab]}
           onPress={() => {
-            setActiveTab("summary");
-            // fetchSummary();
+            // 현재 선택된 언어로 요약을 진행할지 확인
+            Alert.alert(
+              "Confirm Summary Language",
+              `Would you like to proceed with the summary in ${targetLanguage.name} ${targetLanguage.subname}?`,
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                },
+                {
+                  text: "OK",
+                  onPress: () => {
+                    setActiveTab("summary");
+                    // 선택된 언어로 요약 진행
+                    if (targetLanguage && summary[targetLanguage.code]) {
+                      setSummarizedText(summary[targetLanguage.code]);
+                    }
+                  },
+                },
+              ]
+            );
           }}
         >
           <Text
@@ -296,28 +455,38 @@ const AudioUploadRecording = ({ route }) => {
           <View style={styles.transcriptionContainer}>
             <View style={styles.messageContainer}>
               {/* 보이스 클론 추가 */}
-              <View style={styles.timestampContainer}>
-                <Text style={styles.timestamp}></Text>
-                <TouchableOpacity onPress={playAudio}>
-                  <MaterialIcons
-                    name="volume-up"
-                    size={24}
-                    color="black"
-                    style={styles.speakerIcon}
-                  />
-                </TouchableOpacity>
-              </View>
               <View style={styles.messageBubble}>
-                <Text style={styles.speakerName}>Speaker</Text>
+                <View style={styles.messageHeader}>
+                  <Text style={styles.speakerName}>Speaker</Text>
+                  {/*tts 진행시 주석 제거 예정
+                  /*<TouchableOpacity
+                    onPress={playAudio}
+                    disabled={!audioFileName}
+                  >
+                    <MaterialIcons
+                      name={isPlaying ? "stop" : "volume-up"}
+                      size={24}
+                      color={audioFileName ? "#6A9C89" : "#CCCCCC"}
+                      style={styles.speakerIcon}
+                    />
+                  </TouchableOpacity>*/}
+                </View>
                 <Text style={styles.messageText}>{stt_text}</Text>
               </View>
             </View>
           </View>
         ) : (
-          <View style={styles.summaryContainer}>
-            <Text style={styles.summaryText}>
-              {summarizedText || "요약을 가져오는 중..."}
-            </Text>
+          <View style={styles.transcriptionContainer}>
+            <View style={styles.messageContainer}>
+              <View style={styles.messageBubble}>
+                <View style={styles.messageHeader}>
+                  <Text style={styles.speakerName}>Summary</Text>
+                </View>
+                <Text style={styles.summaryText}>
+                  {summarizedText || "요약을 가져오는 중..."}
+                </Text>
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -369,7 +538,7 @@ const AudioUploadRecording = ({ route }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Target Language</Text>
+              <Text style={styles.modalTitle}>Change Final Language</Text>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setModalVisible(false)}
@@ -408,37 +577,6 @@ const AudioUploadRecording = ({ route }) => {
           </View>
         </View>
       </Modal>
-      {/* 녹화 중지 확인 모달 */}
-      {/* <Modal visible={showStopModal} transparent={true} animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.stopModalContent}>
-            <Text style={styles.stopModalTitle}>End Recording?</Text>
-            <Text style={styles.stopModalText}>
-              Recording will be stopped and summarized. Do you want to continue?
-            </Text>
-            <View style={styles.stopModalButtons}>
-              <TouchableOpacity
-                style={[styles.stopModalButton, styles.stopModalCancelButton]}
-                onPress={() => setShowStopModal(false)}
-              >
-                <Text style={styles.stopModalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.stopModalButton, styles.stopModalConfirmButton]}
-                onPress={() => {
-                  setIsRecording(false);
-                  setShowStopModal(false);
-                  setActiveTab("summary"); // 서머리 탭으로 전환
-                }}
-              >
-                <Text style={styles.stopModalConfirmText}>
-                  Yes, End Recording
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal> */}
     </SafeAreaView>
   );
 };
@@ -472,6 +610,22 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: "#f8f9fa",
+  },
+  statusItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F0F0",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusText: {
+    fontSize: 12,
+    color: "#6A9C89",
+    marginRight: 4,
+  },
+  rotatingIcon: {
+    transform: [{ rotate: "0deg" }],
   },
 
   // 컨텐츠 영역 관련 스타일
@@ -516,19 +670,6 @@ const styles = StyleSheet.create({
   messageContainer: {
     marginBottom: 16,
   },
-  timestamp: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 4,
-  },
-  timestampContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between", // 오른쪽에 아이콘 정렬
-  },
-  speakerIcon: {
-    marginLeft: 8, // 아이콘과 텍스트 간격 조절
-  },
   messageBubble: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -552,6 +693,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#2D3436",
     lineHeight: 20,
+  },
+  messageHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
   },
 
   // 언어 선택 관련 스타일
@@ -706,53 +853,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#f8f9fa",
   },
-
-  // 중지 확인 모달 스타일
-  // stopModalContent: {
-  //   backgroundColor: "#fff",
-  //   borderRadius: 20,
-  //   padding: 24,
-  //   width: "85%",
-  //   alignSelf: "center",
-  // },
-  // stopModalTitle: {
-  //   fontSize: 20,
-  //   fontWeight: "600",
-  //   color: "#2D3436",
-  //   marginBottom: 12,
-  // },
-  // stopModalText: {
-  //   fontSize: 16,
-  //   color: "#636E72",
-  //   marginBottom: 24,
-  //   lineHeight: 22,
-  // },
-  // stopModalButtons: {
-  //   flexDirection: "row",
-  //   justifyContent: "flex-end",
-  //   gap: 12,
-  // },
-  // stopModalButton: {
-  //   paddingVertical: 12,
-  //   paddingHorizontal: 20,
-  //   borderRadius: 12,
-  // },
-  // stopModalCancelButton: {
-  //   backgroundColor: "#f8f9fa",
-  // },
-  // stopModalConfirmButton: {
-  //   backgroundColor: "#FF4444",
-  // },
-  // stopModalCancelText: {
-  //   color: "#636E72",
-  //   fontSize: 16,
-  //   fontWeight: "500",
-  // },
-  // stopModalConfirmText: {
-  //   color: "#fff",
-  //   fontSize: 16,
-  //   fontWeight: "500",
-  // },
 });
 
 export default AudioUploadRecording;
