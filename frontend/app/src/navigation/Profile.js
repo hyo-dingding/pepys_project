@@ -16,7 +16,7 @@ import * as ImagePicker from "expo-image-picker"; // expo-image-picker로 변경
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-// import { NGROK_URL } from "@env";
+import { NGROK_URL } from "@env";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { initializeApp, getApp } from "firebase/app";
 import {
@@ -27,8 +27,6 @@ import {
   FIREBASE_MESSAGING_SENDER_ID,
   FIREBASE_APP_ID,
 } from "@env";
-
-const NGROK_URL = "https://0269-218-148-117-162.ngrok-free.app";
 
 const firebaseConfig = {
   apiKey: FIREBASE_API_KEY,

@@ -16,9 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { Keyboard } from "react-native";
 import axios from "axios";
-// import { NGROK_URL } from "@env";
-
-const NGROK_URL = "https://e0d4-218-148-117-162.ngrok-free.app";
+import { NGROK_URL } from "@env";
 
 const nationalities = [
   "United States",

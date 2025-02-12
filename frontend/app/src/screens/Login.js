@@ -17,9 +17,7 @@ import {
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-// import { NGROK_URL } from "@env";
-
-const NGROK_URL = "https://6e60-218-148-117-162.ngrok-free.app";
+import { NGROK_URL } from "@env";
 
 const { height } = Dimensions.get("window");
 
