@@ -13,6 +13,8 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FileUploadScreen from "../screens/FileUploadScreen";
 import MeetingID from "../screens/MeetingID";
 import AudioUploadScreen from "../screens/AudioUploadScreen";
+import AudioUploadRecording from "../screens/AudioUploadRecording";
+import RealTimeRecording from "../screens/RealTimeRecording";
 import Calendar from "../navigation/Calendar";
 import Profile from "../navigation/Profile";
 
@@ -52,10 +54,12 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleButtonPress = (action) => {
-    if (action === "New Meeting" || action === "Upload Recording") {
-        navigation.navigate("FileUpload", { activeButton: action });
+    if (action === "New Meeting") {
+      navigation.navigate("FileUpload", { activeButton: action });
     } else if (action === "Join Meeting") {
-        navigation.navigate("MeetingID");
+      navigation.navigate("MeetingID");
+    } else if (action === "Upload Recording") {
+      navigation.navigate("AudioUpload");
     }
   };
 
@@ -396,6 +400,16 @@ const Home = () => {
       <Stack.Screen
         name="AudioUpload"
         component={AudioUploadScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="AudioUploadRecording"
+        component={AudioUploadRecording}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="RealTimeRecording"
+        component={RealTimeRecording}
         options={{ headerShown: false }}
       />
       <Stack.Screen

@@ -273,74 +273,57 @@ const LoginModal = ({ visible, onClose, navigation }) => {
     })
   ).current;
 
-  // const handleLogin = async () => {
-  //   try {
-  //     const response = await axios.post(
-  //       `${NGROK_URL}/auth/login`, // 정확한 ngrok URL과 경로 사용
-  //       {
-  //         email, // 사용자 입력값
-  //         password, // 사용자 입력값
-  //       }
-  //     );
-
-  //     if (response.status === 200) {
-  //       const { access_token } = response.data;
-  //       console.log("Login successful, token:", access_token);
-  //       // 토큰저장
-  //       await AsyncStorage.setItem("access_token", access_token);
-  //       await AsyncStorage.setItem("user_email", email);
-
-  //       // 로그인 성공 처리, 토큰 저장 등
-  //       navigation.navigate("MainTabs", { screen: "RoomSetup" });
-  //     } else {
-  //       console.error("Login failed", response.status);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error during login:", error);
-
-  //     if (error.response) {
-  //       if (error.response.status === 401) {
-  //         Alert.alert(
-  //           "Error",
-  //           "Invalid credentials. Please check your email or password."
-  //         );
-  //       } else {
-  //         Alert.alert(
-  //           "Error",
-  //           "An error occurred during login. Please try again."
-  //         );
-  //       }
-  //     } else if (error.request) {
-  //       Alert.alert(
-  //         "Error",
-  //         "Failed to connect to server. Please check your network connection."
-  //       );
-  //     } else {
-  //       Alert.alert("Error", "An error occurred while setting up the request.");
-  //     }
-  //   }
-  // };
-
   const handleLogin = async () => {
-      try {
-          // 로그인 성공 처리
-          const fakeAccessToken = "dummy_access_token"; // 가짜 토큰 생성
-          console.log("Login successful, token:", fakeAccessToken);
+    try {
+      const response = await axios.post(
+        `${NGROK_URL}/auth/login`, // 정확한 ngrok URL과 경로 사용
+        {
+          email, // 사용자 입력값
+          password, // 사용자 입력값
+        }
+      );
 
-          // AsyncStorage에 가짜 토큰과 이메일 저장
-          await AsyncStorage.setItem("access_token", fakeAccessToken);
-          await AsyncStorage.setItem(
-              "user_email",
-              email || "guest@example.com"
-          );
+      if (response.status === 200) {
+        const { access_token } = response.data;
+        console.log("Login successful, token:", access_token);
+        // 토큰저장
+        await AsyncStorage.setItem("access_token", access_token);
+        await AsyncStorage.setItem("user_email", email);
 
-          // 로그인 성공 후 메인 화면으로 이동
-          navigation.navigate("MainTabs", { screen: "RoomSetup" });
-      } catch (error) {
-          console.error("Error during login:", error);
-          Alert.alert("Error", "An unexpected error occurred.");
+        // 로그인 성공 후 모달 닫기
+        onClose();
+
+        // 로그인 성공 처리, 토큰 저장 등
+        navigation.navigate("MainTabs", { screen: "RoomSetup" });
+      } else {
+        console.error("Login failed", response.status);
       }
+    } catch (error) {
+      console.error("Error during login:", error);
+
+      if (error.response) {
+        if (error.response.status === 401) {
+          Alert.alert(
+            "Error",
+            "Invalid credentials. Please check your email or password."
+          );
+        } else {
+          Alert.alert(
+            "Error",
+            "An error occurred during login. Please try again."
+          );
+        }
+      } else if (error.request) {
+        Alert.alert(
+          "Error",
+          "Failed to connect to server. Please check your network connection."
+        );
+      } else {
+        Alert.alert("Error", "An error occurred while setting up the request.");
+      }
+    }
   };
+
   const translateY = panY.interpolate({
     inputRange: [-1, 0, 1],
     outputRange: [0, 0, 1],

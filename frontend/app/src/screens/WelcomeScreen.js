@@ -108,7 +108,9 @@ const WelcomeScreen = ({ navigation }) => {
               {/* 로그인 버튼 */}
               <TouchableOpacity
                 style={styles.welcomeButton}
-                onPress={() => setShowLoginModal(true)}
+                onPress={() => {
+                  setShowLoginModal(true);
+                }}
               >
                 <Text style={styles.welcomeButtonText}>SIGN IN</Text>
               </TouchableOpacity>
@@ -130,15 +132,25 @@ const WelcomeScreen = ({ navigation }) => {
               </TouchableOpacity>
             </Animated.View>
           </View>
-
-          {/* 로그인 모달 컴포넌트 */}
-          <LoginModal
-            visible={showLoginModal}
-            onClose={() => setShowLoginModal(false)}
-            navigation={navigation}
-          />
         </LinearGradient>
       </ImageBackground>
+
+      {/* 모달 렌더링 수정 */}
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          styles.modalContainer,
+          { display: showLoginModal ? "flex" : "none" },
+        ]}
+      >
+        <LoginModal
+          visible={showLoginModal}
+          onClose={() => {
+            setShowLoginModal(false);
+          }}
+          navigation={navigation}
+        />
+      </View>
     </View>
   );
 };
@@ -228,6 +240,11 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  // 모달 컨테이너 스타일
+  modalContainer: {
+    backgroundColor: "transparent",
+    zIndex: 1000,
   },
 });
 
