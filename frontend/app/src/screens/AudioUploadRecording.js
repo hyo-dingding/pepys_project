@@ -28,6 +28,7 @@ import {
   FIREBASE_MESSAGING_SENDER_ID,
   FIREBASE_APP_ID,
 } from "@env";
+import * as FileSystem from "expo-file-system";
 
 const languages = [
   { code: "ko", name: "한국어", subname: "(Korean)" },
@@ -49,13 +50,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 const AudioUploadRecording = ({ route }) => {
-  const { stt_text, summary, selected_language } = route.params;
+  const { selected_language, stt_text, summary = {} } = route.params;
   const [targetLanguage, setTargetLanguage] = useState(
     languages.find((lang) => lang.code === selected_language)
   );
-  const [summarizedText, setSummarizedText] = useState(
-    summary[selected_language]
-  );
+
+  // const [summary, setSummary] = useState({});
+  const [summarizedText, setSummarizedText] = useState();
 
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectingLanguage, setSelectingLanguage] = useState(null);
@@ -63,7 +64,7 @@ const AudioUploadRecording = ({ route }) => {
 
   const [sttText, setSttText] = useState("");
 
-  const [sttStatus, setSttStatus] = useState("waiting");
+  const [sttStatus, setSttStatus] = useState("processing");
   // const [ttsStatus, setTtsStatus] = useState("waiting"); tts 진행시 주석 제거 예정
   const [summaryStatus, setSummaryStatus] = useState("waiting");
 
@@ -74,14 +75,24 @@ const AudioUploadRecording = ({ route }) => {
     }
   }, [targetLanguage, summary]);
 
+  // route.params 변경 감지하여 데이터 업데이트
   useEffect(() => {
-    // stt진행시 tts(elevenlabs)자동 진행, tts 진행시 주석 제거 예정
-    if (stt_text) {
-      // elevenLabsVoice();
+    if (route.params?.stt_text) {
+      setSttText(route.params.stt_text);
       setSttStatus("completed");
-      // setTtsStatus("processing");
+      setSummaryStatus("processing");
     }
-  }, [stt_text]);
+
+    if (route.params?.summary && route.params?.selected_language) {
+      setSummarizedText(route.params.summary[route.params.selected_language]);
+      setSummaryStatus("completed");
+    }
+
+    if (route.params?.error) {
+      setSttStatus("waiting");
+      setSummaryStatus("waiting");
+    }
+  }, [route.params]);
 
   // tts 진행시 주석 제거 예정
   // useEffect(() => {
@@ -99,7 +110,7 @@ const AudioUploadRecording = ({ route }) => {
     }
   }, [activeTab, summarizedText]);
 
-  const selectLanguage = (language) => {
+  const selectLanguage = async (language) => {
     setTargetLanguage(language);
     setModalVisible(false);
   };
@@ -109,30 +120,25 @@ const AudioUploadRecording = ({ route }) => {
     setModalVisible(!isModalVisible);
   };
 
-  // MongoDB에서 가져온 STT 결과를 저장할 상태 추가
-  // const fetchMongoSttResult = async (roomCode) => {
-  //     try {
-  //         const response = await axios.get(
-  //             `https://4c7a-211-213-171-236.ngrok-free.app/get-results/${room_code}`
-  //         );
-  //         if (response.data && response.data.stt_text) {
-  //             setSttText(response.data.stt_text);
-  //         } else {
-  //             console.error("MongoDB에서 STT 결과를 가져오는 중 오류 발생");
-  //         }
-  //     } catch (error) {
-  //         console.error(
-  //             "MongoDB에서 STT 결과를 가져오는 중 오류 발생",
-  //             error
-  //         );
-  //     }
-  // };
+  // MongoDB에서 가져온 STT 결과를 저장할 상태 추가 , 확인 불가능
+  const fetchMongoSttResult = async (room_Code) => {
+    try {
+      const response = await axios.get(`${NGROK_URL}/get-results/${room_code}`);
+      if (response.data && response.data.stt_text) {
+        setSttText(response.data.stt_text);
+      } else {
+        console.error("MongoDB에서 STT 결과를 가져오는 중 오류 발생");
+      }
+    } catch (error) {
+      console.error("MongoDB에서 STT 결과를 가져오는 중 오류 발생", error);
+    }
+  };
 
   // 요약 결과를 가져오는 함수
   // const fetchSummary = async (room_code, setTargetLanguage) => {
   //     try {
   //         const response = await axios.get(
-  //             `https://33f7-211-213-171-236.ngrok-free.app/get-results/${room_code}`,
+  //             `${NGROK_URL}/get-results/${room_code}`,
   //             { params: { language: setTargetLanguage } }
   //         );
 
@@ -230,13 +236,9 @@ const AudioUploadRecording = ({ route }) => {
       <html>
         <body>
           <h1>Meeting Summary</h1>
-          <div style="margin-top: 20px;">
-            <h2>Transcription</h2>
-            <p>${stt_text}</p>
-          </div>
-          <div style="margin-top: 20px;">
-            <h2>Summary (${targetLanguage.name})</h2>
-            <p>${summarizedText}</p>
+        <div style="margin-top: 20px;">
+          <h2>Summary (${targetLanguage?.name || "Unknown Language"})</h2>
+          <p>${summarizedText || "No summary available"}</p>
           </div>
         </body>
       </html>
@@ -311,29 +313,52 @@ const AudioUploadRecording = ({ route }) => {
         return;
       }
 
-      // 성공 알림
-      Alert.alert("Success", "PDF has been successfully saved.", [
-        {
-          text: "OK",
-          onPress: () => console.log("PDF saved:", downloadURL),
-        },
-      ]);
+      // 기기에 저장하는 로직 추가
+      const filename = `pepys_summary_${new Date().getTime()}.pdf`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+
+      const downloadResult = await FileSystem.downloadAsync(
+        downloadURL,
+        fileUri
+      );
+
+      if (downloadResult.status === 200) {
+        Alert.alert("Success", "PDF has been saved to your device.", [
+          {
+            text: "OK",
+            onPress: () => console.log("PDF saved to:", fileUri),
+          },
+        ]);
+      } else {
+        throw new Error("Failed to download file");
+      }
     } catch (error) {
       console.error("PDF save error:", error);
-      Alert.alert("Error", "An error occurred while saving the PDF.", [
-        {
-          text: "OK",
-          style: "cancel",
-        },
-      ]);
+      Alert.alert("Error", "An error occurred while saving the PDF.");
     }
   };
 
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerTop}>
-        <TouchableOpacity style={styles.iconButton}>
-          <MaterialIcons name="save" size={24} color="#6A9C89" />
+        <TouchableOpacity
+          style={[
+            styles.iconButton,
+            (activeTab !== "summary" || summaryStatus !== "completed") &&
+              styles.disabledIconButton,
+          ]}
+          disabled={activeTab !== "summary" || summaryStatus !== "completed"}
+          onPress={handleSavePDF}
+        >
+          <MaterialIcons
+            name="save"
+            size={24}
+            color={
+              activeTab === "summary" && summaryStatus === "completed"
+                ? "#6A9C89"
+                : "#ccc"
+            }
+          />
         </TouchableOpacity>
 
         <View style={styles.loadingStatus}>
@@ -384,8 +409,23 @@ const AudioUploadRecording = ({ route }) => {
           ) : null}
         </View>
 
-        <TouchableOpacity style={styles.iconButton}>
-          <MaterialIcons name="mail" size={24} color="#6A9C89" />
+        <TouchableOpacity
+          style={[
+            styles.iconButton,
+            (activeTab !== "summary" || summaryStatus !== "completed") &&
+              styles.disabledIconButton,
+          ]}
+          disabled={activeTab !== "summary" || summaryStatus !== "completed"}
+        >
+          <MaterialIcons
+            name="mail"
+            size={24}
+            color={
+              activeTab === "summary" && summaryStatus === "completed"
+                ? "#6A9C89"
+                : "#ccc"
+            }
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -507,26 +547,75 @@ const AudioUploadRecording = ({ route }) => {
             style={[
               styles.languageButton,
               !targetLanguage && styles.languageButtonDefault,
+              (sttStatus !== "completed" ||
+                (activeTab === "summary" && summaryStatus === "processing")) &&
+                styles.disabledLanguageButton,
             ]}
             onPress={() => toggleModal("target")}
+            disabled={
+              sttStatus !== "completed" ||
+              (activeTab === "summary" && summaryStatus === "processing")
+            }
           >
-            <MaterialIcons name="language" size={20} color="#6A9C89" />
+            <MaterialIcons
+              name="language"
+              size={20}
+              color={
+                sttStatus !== "completed" ||
+                (activeTab === "summary" && summaryStatus === "processing")
+                  ? "#ccc"
+                  : "#6A9C89"
+              }
+            />
             <View style={styles.languageTextContainer}>
               {targetLanguage ? (
                 <>
-                  <Text style={styles.languageText}>{targetLanguage.name}</Text>
-                  <Text style={styles.languageSubText}>
+                  <Text
+                    style={[
+                      styles.languageText,
+                      (sttStatus !== "completed" ||
+                        (activeTab === "summary" &&
+                          summaryStatus === "processing")) &&
+                        styles.disabledText,
+                    ]}
+                  >
+                    {targetLanguage.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.languageSubText,
+                      (sttStatus !== "completed" ||
+                        (activeTab === "summary" &&
+                          summaryStatus === "processing")) &&
+                        styles.disabledText,
+                    ]}
+                  >
                     {targetLanguage.subname}
                   </Text>
                 </>
               ) : (
-                <Text style={styles.defaultLanguageText}>Language</Text>
+                <Text
+                  style={[
+                    styles.defaultLanguageText,
+                    (sttStatus !== "completed" ||
+                      (activeTab === "summary" &&
+                        summaryStatus === "processing")) &&
+                      styles.disabledText,
+                  ]}
+                >
+                  Language
+                </Text>
               )}
             </View>
             <MaterialIcons
               name="keyboard-arrow-down"
               size={20}
-              color="#6A9C89"
+              color={
+                sttStatus !== "completed" ||
+                (activeTab === "summary" && summaryStatus === "processing")
+                  ? "#ccc"
+                  : "#6A9C89"
+              }
               style={styles.arrowIcon}
             />
           </TouchableOpacity>
@@ -627,6 +716,10 @@ const styles = StyleSheet.create({
   rotatingIcon: {
     transform: [{ rotate: "0deg" }],
   },
+  disabledIconButton: {
+    backgroundColor: "#f5f5f5",
+    opacity: 0.7,
+  },
 
   // 컨텐츠 영역 관련 스타일
   contentContainer: {
@@ -705,7 +798,7 @@ const styles = StyleSheet.create({
   languageSection: {
     position: "absolute",
     width: "100%",
-    bottom: Platform.OS === "ios" ? 100 : 75,
+    bottom: Platform.OS === "ios" ? 73 : 75,
     backgroundColor: "#fff",
     paddingHorizontal: 20,
     paddingVertical: 8,
@@ -845,6 +938,13 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: "#f0f0f0",
+  },
+  disabledLanguageButton: {
+    backgroundColor: "#f5f5f5",
+    borderColor: "#e0e0e0",
+  },
+  disabledText: {
+    color: "#999",
   },
 
   // 공통 버튼 스타일

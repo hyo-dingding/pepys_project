@@ -23,6 +23,34 @@ import { NGROK_URL } from "@env";
 import * as Asset from "expo-asset";
 // import { v4 as uuidv4 } from "uuid";
 // import * as Crypto from "expo-crypto";
+import { initializeApp } from "firebase/app";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  FIREBASE_API_KEY,
+  FIREBASE_AUTH_DOMAIN,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_STORAGE_BUCKET,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_APP_ID,
+} from "@env";
+
+const firebaseConfig = {
+  apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
+};
+
+// Firebase 초기화
+let app;
+try {
+  app = getApp();
+} catch (e) {
+  app = initializeApp(firebaseConfig);
+}
+const storage = getStorage(app);
 
 const { width } = Dimensions.get("window");
 
@@ -81,6 +109,7 @@ const AudioUploadScreen = () => {
     }
   };
 
+  // 확인 불가능
   const handleSave = async () => {
     try {
       if (!fileUrl) {
@@ -99,35 +128,29 @@ const AudioUploadScreen = () => {
         name: uploadedFiles[0].name,
         type: "audio/mpeg",
       });
-      formData._parts.forEach((part) => {
-        console.log("FormData part:", part);
-      });
-      //   // 파일을 업로드 테스트 완료 후 주석 제거 예정
-      //   const response = await axios.post(
-      //     `${NGROK_URL}/upload-audio-complete`,
-      //     formData,
-      //     {
-      //       headers: {
-      //         "Content-Type": "multipart/form-data",
-      //       },
-      //     }
-      //   );
 
-      //   const result = response.data.data;
-
-      // 테스트용 더미 데이터 테스트 완료 후 삭제 예정
-      const dummyResult = {
-        stt_text: "테스트 텍스트",
-        room_code: "TEST123",
-        summary: "테스트 요약",
-      };
-
-      // AudioUploadRecording으로 이동하며 필요한 데이터를 전달
+      // 백엔드 요청을 보내고 바로 다음 화면으로 이동
       navigation.navigate("AudioUploadRecording", {
+        selected_language: targetLanguage.code,
+      });
+
+      // 백엔드 요청은 화면 전환 후 백그라운드에서 계속 진행
+      const response = await axios.post(
+        `${NGROK_URL}/upload-audio-complete`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // 응답이 오면 결과를 다음 화면으로 전달
+      const result = response.data.data;
+      navigation.setParams({
         stt_text: result.stt_text,
         room_code: result.room_code,
-        summary: result.summary,
-        selected_language: targetLanguage.code,
+        // summary: result.summary,
       });
     } catch (err) {
       console.error("Error uploading file:", err);
@@ -135,22 +158,22 @@ const AudioUploadScreen = () => {
     }
   };
 
-  //  테스트용 더미 데이터로 다음 화면으로 이동
-  const handleSkip = () => {
-    if (!targetLanguage) {
-      Alert.alert("Warning", "Please select a language before proceeding.", [
-        { text: "OK" },
-      ]);
-      return;
-    }
+  // //  테스트용 더미 데이터로 다음 화면으로 이동
+  // const handleSkip = () => {
+  //   if (!targetLanguage) {
+  //     Alert.alert("Warning", "Please select a language before proceeding.", [
+  //       { text: "OK" },
+  //     ]);
+  //     return;
+  //   }
 
-    navigation.navigate("AudioUploadRecording", {
-      stt_text: "테스트 텍스트",
-      room_code: "TEST123",
-      summary: "테스트 요약",
-      selected_language: targetLanguage.code,
-    });
-  };
+  //   navigation.navigate("AudioUploadRecording", {
+  //     // stt_text: "테스트 텍스트",
+  //     room_code: "TEST123",
+  //     // summary: "테스트 요약",
+  //     selected_language: targetLanguage.code,
+  //   });
+  // };
 
   const handleDeleteFile = (index) => {
     const newFiles = [...uploadedFiles];
@@ -298,13 +321,13 @@ const AudioUploadScreen = () => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={[styles.button, styles.skipButton]}
             // onPress={() => navigation.goBack()}
             onPress={handleSkip} // handleSkip 함수로 변경 테스트 후 삭제 예정
           >
             <Text style={styles.skipButtonText}>Skip</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -500,6 +523,7 @@ const styles = StyleSheet.create({
     height: 45,
   },
   saveButton: {
+    alignItems: "center",
     backgroundColor: "#6A9C89",
   },
   skipButton: {

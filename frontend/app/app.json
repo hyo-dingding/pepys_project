@@ -41,6 +41,7 @@
         "foregroundImage": "./src/assets/image/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "usesCleartextTraffic": true,
       "plugins": [
         "@react-native-firebase/app",
         "expo-build-properties",

@@ -79,11 +79,15 @@ const WelcomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar
+        barStyle={Platform.OS === "ios" ? "dark-content" : "light-content"}
+        translucent
+      />
       {/* 배경 이미지 설정 */}
       <ImageBackground
         source={require("../../src/assets/image/path_to_background_image.jpg")}
         style={styles.background}
+        resizeMode="cover"
       >
         {/* 그라데이션 오버레이 */}
         <LinearGradient
@@ -164,7 +168,7 @@ const styles = StyleSheet.create({
   // 배경 이미지 스타일
   background: {
     flex: 1,
-    resizeMode: "cover",
+    resizeMode: Platform.OS === "ios" ? "cover" : "stretch",
   },
   // 그라데이션 스타일
   gradient: {

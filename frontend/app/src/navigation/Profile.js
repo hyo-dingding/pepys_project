@@ -18,6 +18,13 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { NGROK_URL } from "@env";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+} from "firebase/firestore";
 import { initializeApp, getApp } from "firebase/app";
 import {
   FIREBASE_API_KEY,
@@ -40,6 +47,7 @@ const firebaseConfig = {
 // Firebase 초기화
 let app;
 let storage;
+let db;
 
 try {
   app = getApp();
@@ -49,6 +57,7 @@ try {
 
 // Storage 초기화
 storage = getStorage(app);
+db = getFirestore(app);
 console.log("Storage initialized:", storage ? "Success" : "Failed");
 
 const Profile = () => {
@@ -63,6 +72,8 @@ const Profile = () => {
     interests: [],
   });
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProfileData, setEditedProfileData] = useState({});
   const navigation = useNavigation();
 
   // loadProfileData 함수 추가
@@ -76,7 +87,7 @@ const Profile = () => {
         return;
       }
 
-      // 이메일 가져오기 - AsyncStorage에 저장된 이메일 사용
+      // 이메일 가져오기
       const userEmail = await AsyncStorage.getItem("user_email");
       if (!userEmail) {
         console.log("No email found");
@@ -85,37 +96,53 @@ const Profile = () => {
 
       console.log("Fetching user data for email:", userEmail);
 
-      // 사용자 정보 가져오기
-      const response = await axios.get(`${NGROK_URL}/find-id/${userEmail}`);
-      console.log("API Response:", response.data); // 실제 응답 데이터 확인
+      // Firebase에서 프로필 이미지 가져오기
+      try {
+        const userDocRef = doc(db, "users", userEmail);
+        const userDoc = await getDoc(userDocRef);
+        const firestoreData = userDoc.data();
+        const savedProfileImageUrl = firestoreData?.profileImageUrl;
 
-      const userData = response.data;
+        console.log("Saved profile image URL:", savedProfileImageUrl);
 
-      if (!userData || !userData.email) {
-        throw new Error("Invalid user data received");
+        // 프로필 이미지 업데이트
+        setProfileData((prev) => ({
+          ...prev,
+          photo: savedProfileImageUrl || null,
+        }));
+      } catch (firestoreError) {
+        console.error("Firestore error:", firestoreError);
       }
 
-      // 프로필 데이터 업데이트
-      setProfileData((prev) => ({
-        ...prev,
-        name: userData.name || "",
-        email: userData.email || "",
-        nationality: userData.nationality || "",
-        work_title: userData.work_title || "",
-        photo: prev.photo || null,
-        bio: prev.bio || "",
-        location: prev.location || "",
-        connections: prev.connections || "0",
-        meetings: prev.meetings || "0",
-        interests: prev.interests || [],
-      }));
+      // 백엔드에서 사용자 정보 가져오기
+      try {
+        const response = await axios.get(`${NGROK_URL}/find-id/${userEmail}`);
+        console.log("API Response:", response?.data);
 
-      console.log("Profile data loaded:", userData); // 데이터 확인용 로그
+        if (response?.data) {
+          setProfileData((prev) => ({
+            ...prev,
+            name: response.data.name || prev.name || "",
+            email: response.data.email || userEmail,
+            nationality: response.data.nationality || prev.nationality || "",
+            work_title: response.data.work_title || prev.work_title || "",
+            bio: prev.bio || "",
+            location: prev.location || "",
+            connections: prev.connections || "0",
+            meetings: prev.meetings || "0",
+            interests: prev.interests || [],
+          }));
+        }
+      } catch (apiError) {
+        console.error("API error:", apiError);
+        // API 에러가 발생해도 기존 상태 유지
+        setProfileData((prev) => ({
+          ...prev,
+          email: userEmail,
+        }));
+      }
     } catch (error) {
       console.error("Error loading profile data:", error);
-      if (error.response) {
-        console.error("Error response:", error.response.data);
-      }
       Alert.alert("Error", "Failed to load profile data. Please try again.");
     }
   };
@@ -130,14 +157,7 @@ const Profile = () => {
     try {
       // AsyncStorage에서 토큰 삭제
       await AsyncStorage.removeItem("access_token");
-
-      // 삭제 후 토큰 확인
       const token = await AsyncStorage.getItem("access_token");
-      if (!token) {
-        console.log("Token successfully deleted"); // 토큰이 없으면 성공적으로 삭제된 것
-      } else {
-        console.log("Token still exists:", token); // 토큰이 남아있다면 삭제 실패
-      }
 
       // 로그아웃 후 WelcomeScreen으로 이동
       navigation.reset({
@@ -148,8 +168,6 @@ const Profile = () => {
       console.error("Error during logout:", error);
     }
   };
-
-  const [isEditing, setIsEditing] = useState(false);
 
   const handlePhotoSelect = async () => {
     try {
@@ -195,32 +213,39 @@ const Profile = () => {
         throw new Error("Storage not initialized");
       }
 
+      const userEmail = await AsyncStorage.getItem("user_email");
+      if (!userEmail) {
+        throw new Error("User email not found");
+      }
+
       console.log("Starting image upload process...");
 
       // URI를 blob으로 변환
       const response = await fetch(imageAsset.uri);
       blob = await response.blob();
-      console.log("Image converted to blob:", {
-        size: blob.size,
-        type: blob.type,
-      });
 
       // 파일 이름 생성
       const extension = imageAsset.uri.split(".").pop();
-      const filename = `profile_${Platform.OS}_${Date.now()}.${extension}`;
-      console.log("Generated filename:", filename);
+      const filename = `profile_${userEmail}_${Date.now()}.${extension}`;
 
       // Storage 참조 생성 (web SDK 방식)
       const storageRef = ref(storage, `profile_images/${filename}`);
-      console.log("Storage reference created");
 
       // 이미지 업로드
       const uploadTask = await uploadBytes(storageRef, blob);
-      console.log("Upload successful:", uploadTask.metadata);
 
       // 다운로드 URL 가져오기
       const downloadURL = await getDownloadURL(uploadTask.ref);
-      console.log("Download URL:", downloadURL);
+
+      // 이메일을 키로 사용하여 프로필 이미지 URL 저장
+      const userDocRef = doc(db, "users", userEmail);
+      await setDoc(
+        userDocRef,
+        {
+          profileImageUrl: downloadURL,
+        },
+        { merge: true }
+      );
 
       // 프로필 데이터 업데이트
       setProfileData((prev) => ({
@@ -230,12 +255,7 @@ const Profile = () => {
 
       Alert.alert("Success", "Image uploaded successfully");
     } catch (error) {
-      console.error("Firebase upload error:", {
-        message: error.message,
-        code: error.code,
-        stack: error.stack,
-        storageAvailable: !!storage,
-      });
+      console.error("Firebase upload error:", error);
 
       Alert.alert("Upload Error", `Failed to upload image: ${error.message}`);
     } finally {
@@ -325,6 +345,28 @@ const Profile = () => {
     );
   };
 
+  const handleEditProfile = async () => {
+    if (isEditing) {
+      try {
+        // 여기에 프로필 업데이트 API 호출 추가
+        const userEmail = profileData.email;
+        const response = await axios.put(
+          `${NGROK_URL}/user/${userEmail}`,
+          editedProfileData
+        );
+
+        if (response.status === 200) {
+          setProfileData(editedProfileData);
+          Alert.alert("Success", "Profile updated successfully");
+        }
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        Alert.alert("Error", "Failed to update profile. Please try again.");
+      }
+    }
+    setIsEditing(!isEditing);
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#F8F9FA" barStyle="dark-content" />
@@ -360,22 +402,24 @@ const Profile = () => {
             )}
           </TouchableOpacity>
           <TextInput
-            style={styles.nameInput}
+            style={[styles.nameInput, !isEditing && styles.disabledInput]}
             value={profileData.name}
             onChangeText={(text) =>
               setProfileData((prev) => ({ ...prev, name: text }))
             }
             placeholder="Enter your name"
             placeholderTextColor="#999"
+            editable={isEditing}
           />
           <TextInput
-            style={styles.emailInput}
+            style={[styles.emailInput, !isEditing && styles.disabledInput]}
             value={profileData.email}
             onChangeText={(text) =>
               setProfileData((prev) => ({ ...prev, email: text }))
             }
             placeholder="Enter your email"
             placeholderTextColor="#999"
+            editable={isEditing}
           />
         </View>
 
@@ -396,13 +440,14 @@ const Profile = () => {
         <View style={styles.locationContainer}>
           <MaterialIcons name="location-on" size={20} color="#6A9C89" />
           <TextInput
-            style={styles.locationInput}
+            style={[styles.locationInput, !isEditing && styles.disabledInput]}
             value={profileData.location}
             onChangeText={(text) =>
               setProfileData((prev) => ({ ...prev, location: text }))
             }
             placeholder="Enter your location"
             placeholderTextColor="#999"
+            editable={isEditing}
           />
         </View>
 
@@ -410,7 +455,7 @@ const Profile = () => {
         <View style={styles.bioSection}>
           <Text style={styles.sectionTitle}>About Me</Text>
           <TextInput
-            style={styles.bioInput}
+            style={[styles.bioInput, !isEditing && styles.disabledInput]}
             value={profileData.bio}
             onChangeText={(text) =>
               setProfileData((prev) => ({ ...prev, bio: text }))
@@ -418,6 +463,7 @@ const Profile = () => {
             placeholder="Tell us about yourself..."
             placeholderTextColor="#999"
             multiline
+            editable={isEditing}
           />
         </View>
 
@@ -435,9 +481,14 @@ const Profile = () => {
 
         {/* Action Buttons */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity
+            style={[styles.editButton, isEditing && styles.saveButton]}
+            onPress={handleEditProfile}
+          >
             <MaterialIcons name="edit" size={20} color="#FFF" />
-            <Text style={styles.buttonText}>Edit Profile</Text>
+            <Text style={styles.buttonText}>
+              {isEditing ? "Save Profile" : "Edit Profile"}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -645,7 +696,13 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: "#DC3545", // 위험을 나타내는 빨간색
-    marginTop: 8, // 다른 버튼들과 약간의 간격
+  },
+  disabledInput: {
+    opacity: 0.7,
+    color: "#2D3436",
+  },
+  saveButton: {
+    backgroundColor: "#4A9C76",
   },
 });
 

@@ -70,7 +70,9 @@ const HomeScreen = ({ navigation }) => {
       </View>
       <TouchableOpacity
         style={styles.profileButton}
-        onPress={() => navigation.navigate("Profile")}
+        onPress={() => {
+          navigation.getParent()?.navigate("ProfileTab");
+        }}
       >
         <MaterialIcons name="account-circle" size={32} color="#6A9C89" />
       </TouchableOpacity>

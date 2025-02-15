@@ -125,7 +125,10 @@ function MainStack() {
       <Stack.Screen
         name="AudioUpload"
         component={AudioUploadScreen}
-        options={{ headerShown: false }}
+        options={{
+          headerShown: false,
+          tabBarStyle: { display: "none" },
+        }}
       />
       <Stack.Screen
         name="Summary"
