@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100, // 하단 여백 추가
+    paddingBottom: 100,
   },
   header: {
     backgroundColor: "#F8F9FA",
